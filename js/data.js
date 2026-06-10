@@ -17,7 +17,7 @@ function applyThumb(el, thumb) {
   const src = String(thumb);
   if (src.startsWith('http') || src.startsWith('assets/')) {
     el.style.background = `url("${src}") center/cover no-repeat`;
-    el.style.backgroundColor = '#E8EAED';
+    el.style.backgroundColor = '#C2AE9F';
   } else {
     el.style.background = thumb;
   }
@@ -26,18 +26,18 @@ function applyThumb(el, thumb) {
 function thumbStyle(thumb) {
   const src = String(thumb);
   if (src.startsWith('http') || src.startsWith('assets/')) {
-    return `background:url('${src}') center/cover no-repeat;background-color:#E8EAED`;
+    return `background:url('${src}') center/cover no-repeat;background-color:#C2AE9F`;
   }
   return `background:${thumb}`;
 }
 
-/** 活动类别配置 */
+/** 活动类别 — 均取自指定糖果色板（主题色 #E2883E 用于 UI 主色） */
 const CATEGORIES = {
-  music:      { icon: '🎵', label: '音乐', color: '#8B5CF6' },
-  sport:      { icon: '⚽', label: '运动', color: '#10B981' },
-  exhibition: { icon: '🖼️', label: '展览', color: '#3B82F6' },
-  food:       { icon: '🍔', label: '美食', color: '#EF4444' },
-  social:     { icon: '💬', label: '社交', color: '#EC4899' },
+  music:      { icon: '🎵', label: '音乐', color: '#6BBFEA' },
+  sport:      { icon: '⚽', label: '运动', color: '#60AB70' },
+  exhibition: { icon: '🖼️', label: '展览', color: '#4583BD' },
+  food:       { icon: '🍔', label: '美食', color: '#DB714F' },
+  social:     { icon: '💬', label: '社交', color: '#DC6872' },
 };
 
 /** 广州 mock 活动（x/y 为地图截图上的百分比位置，基于 926×755 新底图） */

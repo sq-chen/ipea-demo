@@ -235,13 +235,16 @@
       const high = isHighScore(act);
       const pos = MARKER_LAYOUT.get(act.id) || { x: act.x, y: act.y };
       const z = state.selectedId === act.id ? 30 : 10 + idx;
+      const iconBadge = cat.iconBg
+        ? ` class="icon-badge" style="background:${cat.iconBg}"`
+        : '';
       return `
         <div class="marker${high ? ' high' : ''}${state.selectedId === act.id ? ' selected' : ''}"
              data-id="${act.id}"
              style="left:${pos.x}%;top:${pos.y}%;z-index:${z}">
           <div class="marker-pin">
             <div class="marker-icon" style="background:${cat.color}">
-              <span>${cat.icon}</span>
+              <span${iconBadge}>${cat.icon}</span>
             </div>
             <div class="marker-badge">⭐</div>
             <div class="marker-label">${act.name}</div>
@@ -311,7 +314,7 @@
     $('#sheetStars').innerHTML = renderStars(act.rating);
     $('#sheetRatingNum').textContent = act.rating.toFixed(1);
     $('#sheetReviewCount').textContent = `(${act.reviewCount}条评价)`;
-    $('#sheetRatingNum').style.color = high ? '#D97706' : '';
+    $('#sheetRatingNum').style.color = high ? '#DB714F' : '';
   }
 
   function openSheet(id) {
@@ -694,13 +697,15 @@
       const cat = CATEGORIES[act.category];
       const thumbStyleStr = thumbStyle(act.thumb);
       return `
-        <div class="recommend-card" data-id="${act.id}">
+        <div class="recommend-card" data-id="${act.id}" style="--cat-color:${cat.color}">
           <div class="recommend-thumb" style="${thumbStyleStr}"></div>
           <div class="recommend-info">
-            <div class="recommend-name">${act.name}</div>
+            <div class="recommend-title-row">
+              <div class="recommend-name">${act.name}</div>
+              <span class="recommend-cat-tag">${cat.icon} ${cat.label}</span>
+            </div>
             <div class="recommend-highlight">${getHighlight(act.id)}</div>
             <div class="recommend-meta">
-              <span>${cat.icon} ${cat.label}</span>
               <span>${act.time}</span>
               <span>${act.distance}</span>
               <span class="rating">★ ${act.rating.toFixed(1)}</span>
