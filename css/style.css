@@ -495,6 +495,9 @@ body {
   height: 72px;
   border-radius: 12px;
   flex-shrink: 0;
+  background-size: cover;
+  background-position: center;
+  background-color: #E8EAED;
 }
 
 .sheet-info {
@@ -902,6 +905,7 @@ body {
   height: 200px;
   background-size: cover;
   background-position: center;
+  background-color: #E8EAED;
 }
 
 .detail-body {
@@ -1103,8 +1107,51 @@ body {
 }
 
 .comment-foot {
-  font-size: 11px;
+  display: flex;
+  align-items: center;
+}
+
+.comment-helpful-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--bg);
+  font-size: 12px;
   color: var(--muted);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.comment-helpful-btn:active {
+  transform: scale(0.97);
+}
+
+.comment-helpful-btn.on {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.comment-helpful-icon {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.comment-helpful-count {
+  padding-left: 4px;
+  border-left: 1px solid var(--border);
+  margin-left: 2px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.comment-helpful-btn.on .comment-helpful-count {
+  border-left-color: rgba(255, 107, 53, 0.35);
 }
 
 .detail-footer {
@@ -1193,6 +1240,9 @@ body {
   height: 72px;
   border-radius: 10px;
   flex-shrink: 0;
+  background-size: cover;
+  background-position: center;
+  background-color: #E8EAED;
 }
 
 .recommend-info {

@@ -22,6 +22,8 @@
     filterCategories: null,
     filterDraft: new Set(),
     wantList: new Set(),
+    helpfulMarked: new Set(),
+    helpfulExtra: new Map(),
   };
 
   const $ = (sel) => document.querySelector(sel);
@@ -178,7 +180,7 @@
   function renderSheet(act) {
     const cat = CATEGORIES[act.category];
     const high = isHighScore(act);
-    $('#sheetThumb').style.background = act.thumb;
+    applyThumb($('#sheetThumb'), act.thumb);
     $('#sheetTitle').textContent = act.name;
     $('#sheetCategory').textContent = cat.label;
     $('#sheetDistance').textContent = act.distance;
@@ -215,7 +217,7 @@
     const cat = CATEGORIES[act.category];
     const comments = getComments(id);
 
-    $('#detailHero').style.background = act.thumb;
+    applyThumb($('#detailHero'), act.thumb);
     $('#detailTitle').textContent = act.name;
     $('#detailStatus').textContent = act.status === 'ongoing' ? '进行中' : '即将开始';
     $('#detailStatus').className = 'detail-status ' + act.status;
@@ -228,7 +230,12 @@
     $('#detailDesc').textContent = act.desc;
     $('#detailCommentCount').textContent = `共 ${comments.length} 条`;
 
-    $('#commentList').innerHTML = comments.map((c) => `
+    $('#commentList').innerHTML = comments.map((c, idx) => {
+      const key = `${id}-${idx}`;
+      const marked = state.helpfulMarked.has(key);
+      const extra = state.helpfulExtra.get(key) || 0;
+      const likes = c.likes + extra;
+      return `
       <div class="comment-item">
         <div class="comment-top">
           <span>
@@ -239,9 +246,19 @@
         </div>
         <div class="comment-stars">${'★'.repeat(c.rating)}${'☆'.repeat(5 - c.rating)}</div>
         <p class="comment-text">${c.text}</p>
-        <div class="comment-foot">👍 ${c.likes} 人觉得有帮助</div>
-      </div>
-    `).join('');
+        <div class="comment-foot">
+          <button type="button" class="comment-helpful-btn${marked ? ' on' : ''}" data-key="${key}">
+            <span class="comment-helpful-icon">${marked ? '✓' : '👍'}</span>
+            <span>${marked ? '已标记有帮助' : '有帮助'}</span>
+            <span class="comment-helpful-count">${likes}</span>
+          </button>
+        </div>
+      </div>`;
+    }).join('');
+
+    $$('#commentList .comment-helpful-btn').forEach((btn) => {
+      btn.addEventListener('click', () => toggleCommentHelpful(btn.dataset.key));
+    });
 
     const wantBtn = $('#btnWant');
     if (state.wantList.has(id)) {
@@ -251,6 +268,18 @@
       wantBtn.textContent = '想去';
       wantBtn.classList.remove('active');
     }
+  }
+
+  function toggleCommentHelpful(key) {
+    if (state.helpfulMarked.has(key)) {
+      state.helpfulMarked.delete(key);
+      state.helpfulExtra.delete(key);
+    } else {
+      state.helpfulMarked.add(key);
+      state.helpfulExtra.set(key, 1);
+      showToast('感谢反馈！');
+    }
+    if (state.detailId) renderDetail(state.detailId);
   }
 
   function openDetail(id) {
@@ -353,9 +382,12 @@
 
     el.innerHTML = list.map((act) => {
       const cat = CATEGORIES[act.category];
+      const thumbStyle = String(act.thumb).startsWith('http')
+        ? `background:url('${act.thumb}') center/cover no-repeat;background-color:#E8EAED`
+        : `background:${act.thumb}`;
       return `
         <div class="recommend-card" data-id="${act.id}">
-          <div class="recommend-thumb" style="background:${act.thumb}"></div>
+          <div class="recommend-thumb" style="${thumbStyle}"></div>
           <div class="recommend-info">
             <div class="recommend-name">${act.name}</div>
             <div class="recommend-highlight">${getHighlight(act.id)}</div>
