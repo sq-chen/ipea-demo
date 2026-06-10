@@ -4,88 +4,110 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#FF6B35">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Ipea · 点亮身边的好活动</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    :root {
-      --primary: #FF6B35;
-      --primary-light: #FFF0E8;
-      --gold: #FFB020;
-      --gold-glow: rgba(255, 176, 32, 0.45);
-      --bg: #FAFAF8;
-      --card: #fff;
-      --text: #1A1A2E;
-      --muted: #7B8294;
-      --border: #E4E7EF;
-      --radius: 14px;
-    }
-    body {
-      font-family: 'Noto Sans SC', sans-serif;
-      background: #E8EAED;
-      color: var(--text);
-      max-width: 430px;
-      margin: 0 auto;
-      min-height: 100vh;
-      min-height: 100dvh;
-    }
-    .placeholder {
-      min-height: 100vh;
-      min-height: 100dvh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 32px 24px;
-      text-align: center;
-      background: var(--bg);
-    }
-    .logo {
-      font-size: 36px;
-      font-weight: 700;
-      color: var(--primary);
-      margin-bottom: 8px;
-    }
-    .logo span { color: var(--gold); }
-    .tagline {
-      font-size: 14px;
-      color: var(--muted);
-      margin-bottom: 32px;
-    }
-    .status {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 20px;
-      max-width: 320px;
-      box-shadow: 0 2px 10px rgba(0,0,0,.05);
-    }
-    .status h2 {
-      font-size: 15px;
-      margin-bottom: 12px;
-      color: var(--text);
-    }
-    .status p {
-      font-size: 13px;
-      color: var(--muted);
-      line-height: 1.6;
-    }
-    .status a {
-      color: var(--primary);
-      text-decoration: none;
-    }
-  </style>
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <div class="placeholder">
-    <div class="logo">I<span>pea</span></div>
-    <p class="tagline">I have a Ipea · 点亮身边的好活动</p>
-    <div class="status">
-      <h2>🚧 Demo 开发中</h2>
-      <p>广州地图活动发现原型正在搭建。详细计划见仓库内 <a href="./PLAN.md">PLAN.md</a>。</p>
+  <div id="app">
+    <!-- 顶栏 -->
+    <header class="header">
+      <div class="logo">I<em>pea</em></div>
+      <div class="header-actions">
+        <button type="button" class="btn-chip" id="btnFilter">
+          <span>筛选</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- 地图面板 -->
+    <div class="map-panel" id="mapPanel">
+      <div class="map-wrap">
+        <div class="map-hint">拖动地图 · 点击标记查看活动</div>
+        <div class="map-count" id="mapCount"></div>
+
+        <div class="map-canvas" id="mapCanvas">
+          <img src="assets/map-guangzhou.svg" alt="广州市示意地图" draggable="false">
+          <div class="markers-layer" id="markersLayer"></div>
+          <div class="user-loc">
+            <div class="user-loc-pulse"></div>
+            <div class="user-loc-dot"></div>
+          </div>
+        </div>
+
+        <div class="map-controls">
+          <button type="button" class="map-ctrl-btn" id="btnLocate" title="回到当前位置">◎</button>
+        </div>
+      </div>
     </div>
+
+    <!-- 推荐占位 -->
+    <div class="panel-placeholder" id="recommendPanel">
+      <div class="ph-icon">✨</div>
+      <h2>为你推荐</h2>
+      <p>基于兴趣和位置的活动推荐列表<br>将在 V2 版本开放</p>
+      <span class="badge">开发中</span>
+    </div>
+
+    <!-- 我的占位 -->
+    <div class="panel-placeholder" id="profilePanel">
+      <div class="ph-icon">👤</div>
+      <h2>我的</h2>
+      <p>想去清单、我的活动与评价<br>将在 V4 版本开放</p>
+      <span class="badge">开发中</span>
+    </div>
+
+    <!-- 遮罩 -->
+    <div class="sheet-backdrop" id="sheetBackdrop"></div>
+
+    <!-- 活动简要卡片 -->
+    <div class="activity-sheet" id="activitySheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-body">
+        <div class="sheet-top">
+          <div class="sheet-thumb" id="sheetThumb"></div>
+          <div class="sheet-info">
+            <h3 class="sheet-title" id="sheetTitle"></h3>
+            <p class="sheet-meta">
+              <span class="cat" id="sheetCategory"></span>
+              · 距您 <span id="sheetDistance"></span>
+            </p>
+            <p class="sheet-time" id="sheetTime"></p>
+            <div class="sheet-rating">
+              <span id="sheetStars"></span>
+              <span class="rating-num" id="sheetRatingNum"></span>
+              <span class="rating-count" id="sheetReviewCount"></span>
+            </div>
+          </div>
+        </div>
+        <div class="sheet-actions">
+          <button type="button" class="btn btn-primary" id="btnDetail">查看详情</button>
+          <button type="button" class="btn btn-ghost" id="btnCloseSheet">关闭</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部 Tab -->
+    <nav class="tabbar">
+      <button type="button" class="tab active" data-tab="map">
+        <span class="tab-icon">🗺️</span>
+        <span>地图</span>
+      </button>
+      <button type="button" class="tab" data-tab="recommend">
+        <span class="tab-icon">✨</span>
+        <span>推荐</span>
+      </button>
+      <button type="button" class="tab" data-tab="profile">
+        <span class="tab-icon">👤</span>
+        <span>我的</span>
+      </button>
+    </nav>
+
+    <div class="toast" id="toast"></div>
   </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>
