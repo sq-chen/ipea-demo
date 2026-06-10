@@ -1,31 +1,21 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 900" fill="none">
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 900">
   <rect width="800" height="900" fill="#E8F4F0"/>
-  <!-- à_ -->
-  <path d="M0 420 Q200 380 400 400 T800 430 L800 520 Q600 560 400 540 T0 500 Z" fill="#A8D8EA" opacity="0.85"/>
-  <path d="M0 430 Q250 400 450 420 T800 450" stroke="#7EC8E3" stroke-width="3" fill="none" opacity="0.5"/>
-  <!-- :ßW -->
-  <path d="M120 80 L380 60 L420 200 L350 350 L180 320 Z" fill="#D4EDDA" stroke="#B8DFC4" stroke-width="2"/>
-  <path d="M400 50 L680 80 L720 250 L620 380 L420 350 L380 200 Z" fill="#D1ECF1" stroke="#AED9E0" stroke-width="2"/>
-  <path d="M80 340 L350 360 L380 520 L200 620 L60 500 Z" fill="#FFF3CD" stroke="#FFE69C" stroke-width="2"/>
-  <path d="M380 360 L620 380 L680 550 L520 680 L350 600 Z" fill="#F8D7DA" stroke="#F1AEB5" stroke-width="2"/>
-  <path d="M520 580 L720 560 L760 750 L580 820 L480 700 Z" fill="#E2D9F3" stroke="#C9B8E8" stroke-width="2"/>
-  <path d="M60 520 L200 620 L280 780 L40 820 L20 650 Z" fill="#D4EDDA" stroke="#B8DFC4" stroke-width="2" opacity="0.7"/>
-  <!-- Sï -->
-  <line x1="400" y1="0" x2="400" y2="900" stroke="#fff" stroke-width="4" opacity="0.6"/>
-  <line x1="0" y1="470" x2="800" y2="470" stroke="#fff" stroke-width="5" opacity="0.5"/>
-  <line x1="200" y1="0" x2="280" y2="900" stroke="#fff" stroke-width="3" opacity="0.35"/>
-  <line x1="580" y1="0" x2="520" y2="900" stroke="#fff" stroke-width="3" opacity="0.35"/>
-  <!-- 0¹ -->
-  <circle cx="480" cy="480" r="8" fill="#FF6B35" opacity="0.9"/>
-  <circle cx="480" cy="480" r="16" fill="#FF6B35" opacity="0.2"/>
-  <!-- : -->
-  <text x="240" y="200" font-family="sans-serif" font-size="28" font-weight="600" fill="#5A7D6A" opacity="0.85">ŠÀ</text>
-  <text x="520" y="200" font-family="sans-serif" font-size="28" font-weight="600" fill="#4A7A8C" opacity="0.85">)³</text>
-  <text x="180" y="480" font-family="sans-serif" font-size="26" font-weight="600" fill="#8B7355" opacity="0.85">T~</text>
-  <text x="480" y="520" font-family="sans-serif" font-size="26" font-weight="600" fill="#9B5A62" opacity="0.85">wà</text>
-  <text x="600" y="680" font-family="sans-serif" font-size="24" font-weight="600" fill="#6B5B95" opacity="0.85">jº</text>
-  <text x="120" y="680" font-family="sans-serif" font-size="22" font-weight="600" fill="#5A7D6A" opacity="0.75">³Q</text>
-  <text x="500" y="455" font-family="sans-serif" font-size="18" fill="#3D8BA8" opacity="0.7">à_</text>
-  <!-- ˜ -->
-  <text x="400" y="860" text-anchor="middle" font-family="sans-serif" font-size="20" fill="#7B8294" opacity="0.6">Þ · :0þ</text>
+  <path d="M0 420 Q200 380 400 400 T800 430 L800 520 Q600 560 400 540 T0 500 Z" fill="#7EC8E3" opacity="0.75"/>
+  <path d="M0 430 Q250 400 450 420 T800 450" stroke="#5BB5D5" stroke-width="4" fill="none" opacity="0.6"/>
+  <path d="M120 80 L380 60 L420 200 L350 350 L180 320 Z" fill="#B8E0C8" stroke="#8FC9A8" stroke-width="2"/>
+  <path d="M400 50 L680 80 L720 250 L620 380 L420 350 L380 200 Z" fill="#A8D8E8" stroke="#7EBDD4" stroke-width="2"/>
+  <path d="M80 340 L350 360 L380 520 L200 620 L60 500 Z" fill="#F5E6A8" stroke="#E8D080" stroke-width="2"/>
+  <path d="M380 360 L620 380 L680 550 L520 680 L350 600 Z" fill="#F0B8C0" stroke="#E0909C" stroke-width="2"/>
+  <path d="M520 580 L720 560 L760 750 L580 820 L480 700 Z" fill="#C8B8E8" stroke="#A898D0" stroke-width="2"/>
+  <path d="M60 520 L200 620 L280 780 L40 820 L20 650 Z" fill="#B8E0C8" stroke="#8FC9A8" stroke-width="2" opacity="0.75"/>
+  <line x1="400" y1="0" x2="400" y2="900" stroke="#fff" stroke-width="5" opacity="0.55"/>
+  <line x1="0" y1="470" x2="800" y2="470" stroke="#fff" stroke-width="6" opacity="0.45"/>
+  <circle cx="480" cy="480" r="10" fill="#FF6B35"/>
+  <text x="240" y="200" font-family="sans-serif" font-size="30" font-weight="700" fill="#4A7A5A">??</text>
+  <text x="520" y="200" font-family="sans-serif" font-size="30" font-weight="700" fill="#3A7A8C">??</text>
+  <text x="165" y="480" font-family="sans-serif" font-size="28" font-weight="700" fill="#8B7355">??</text>
+  <text x="470" y="530" font-family="sans-serif" font-size="28" font-weight="700" fill="#9B5060">??</text>
+  <text x="590" y="690" font-family="sans-serif" font-size="26" font-weight="700" fill="#6B5095">??</text>
+  <text x="400" y="860" text-anchor="middle" font-family="sans-serif" font-size="22" fill="#7B8294">??? · ????</text>
 </svg>

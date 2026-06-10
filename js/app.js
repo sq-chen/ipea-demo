@@ -100,8 +100,8 @@
 
   function clampMapPosition() {
     const wrap = $('.map-wrap');
-    const maxX = wrap.clientWidth * 0.15;
-    const maxY = wrap.clientHeight * 0.15;
+    const maxX = wrap.clientWidth * 0.2;
+    const maxY = wrap.clientHeight * 0.2;
     state.mapX = Math.max(-maxX, Math.min(maxX, state.mapX));
     state.mapY = Math.max(-maxY, Math.min(maxY, state.mapY));
   }

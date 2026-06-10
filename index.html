@@ -28,7 +28,32 @@
         <div class="map-count" id="mapCount"></div>
 
         <div class="map-canvas" id="mapCanvas">
-          <img src="assets/map-guangzhou.svg" alt="广州市示意地图" draggable="false">
+          <!-- 内联 SVG，避免外部文件加载/路径问题 -->
+          <svg class="map-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 900" aria-hidden="true">
+            <rect width="800" height="900" fill="#E8F4F0"/>
+            <path d="M0 420 Q200 380 400 400 T800 430 L800 520 Q600 560 400 540 T0 500 Z" fill="#7EC8E3" opacity="0.75"/>
+            <path d="M0 430 Q250 400 450 420 T800 450" stroke="#5BB5D5" stroke-width="4" fill="none" opacity="0.6"/>
+            <path d="M120 80 L380 60 L420 200 L350 350 L180 320 Z" fill="#B8E0C8" stroke="#8FC9A8" stroke-width="2"/>
+            <path d="M400 50 L680 80 L720 250 L620 380 L420 350 L380 200 Z" fill="#A8D8E8" stroke="#7EBDD4" stroke-width="2"/>
+            <path d="M80 340 L350 360 L380 520 L200 620 L60 500 Z" fill="#F5E6A8" stroke="#E8D080" stroke-width="2"/>
+            <path d="M380 360 L620 380 L680 550 L520 680 L350 600 Z" fill="#F0B8C0" stroke="#E0909C" stroke-width="2"/>
+            <path d="M520 580 L720 560 L760 750 L580 820 L480 700 Z" fill="#C8B8E8" stroke="#A898D0" stroke-width="2"/>
+            <path d="M60 520 L200 620 L280 780 L40 820 L20 650 Z" fill="#B8E0C8" stroke="#8FC9A8" stroke-width="2" opacity="0.75"/>
+            <line x1="400" y1="0" x2="400" y2="900" stroke="#fff" stroke-width="5" opacity="0.55"/>
+            <line x1="0" y1="470" x2="800" y2="470" stroke="#fff" stroke-width="6" opacity="0.45"/>
+            <line x1="200" y1="0" x2="280" y2="900" stroke="#fff" stroke-width="3" opacity="0.35"/>
+            <line x1="580" y1="0" x2="520" y2="900" stroke="#fff" stroke-width="3" opacity="0.35"/>
+            <circle cx="480" cy="480" r="10" fill="#FF6B35"/>
+            <circle cx="480" cy="480" r="22" fill="#FF6B35" opacity="0.18"/>
+            <text x="240" y="200" font-family="PingFang SC,Microsoft YaHei,sans-serif" font-size="30" font-weight="700" fill="#4A7A5A">越秀</text>
+            <text x="520" y="200" font-family="PingFang SC,Microsoft YaHei,sans-serif" font-size="30" font-weight="700" fill="#3A7A8C">天河</text>
+            <text x="165" y="480" font-family="PingFang SC,Microsoft YaHei,sans-serif" font-size="28" font-weight="700" fill="#8B7355">荔湾</text>
+            <text x="470" y="530" font-family="PingFang SC,Microsoft YaHei,sans-serif" font-size="28" font-weight="700" fill="#9B5060">海珠</text>
+            <text x="590" y="690" font-family="PingFang SC,Microsoft YaHei,sans-serif" font-size="26" font-weight="700" fill="#6B5095">番禺</text>
+            <text x="100" y="690" font-family="PingFang SC,Microsoft YaHei,sans-serif" font-size="24" font-weight="600" fill="#5A7A6A">芳村</text>
+            <text x="490" y="458" font-family="PingFang SC,Microsoft YaHei,sans-serif" font-size="20" font-weight="600" fill="#2D7A9A">珠江</text>
+            <text x="400" y="860" text-anchor="middle" font-family="PingFang SC,Microsoft YaHei,sans-serif" font-size="22" fill="#7B8294">广州市 · 示意地图</text>
+          </svg>
           <div class="markers-layer" id="markersLayer"></div>
           <div class="user-loc">
             <div class="user-loc-pulse"></div>
