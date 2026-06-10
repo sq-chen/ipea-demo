@@ -160,8 +160,9 @@ body {
 .marker {
   position: absolute;
   transform: translate(-50%, -100%);
-  pointer-events: none;
+  pointer-events: auto;
   cursor: pointer;
+  touch-action: manipulation;
   z-index: 10;
   transition: transform 0.15s ease, z-index 0s;
 }
@@ -1946,12 +1947,26 @@ body {
   border-radius: 14px;
   box-shadow: var(--shadow);
   border: 1px solid var(--border);
-  pointer-events: none;
+  pointer-events: auto;
 }
 
 .guide-prompt-actions,
 .guide-prompt-skip {
   pointer-events: auto;
+}
+
+#app.guide-elevate-sheet .activity-sheet.show {
+  z-index: 260;
+}
+
+#app.guide-elevate-sheet .sheet-backdrop.show {
+  z-index: 255;
+  pointer-events: none;
+}
+
+#app.guide-elevate-header .header {
+  z-index: 260;
+  position: relative;
 }
 
 .guide-prompt-text {

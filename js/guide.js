@@ -99,6 +99,7 @@
       spotlight.hidden = true;
       spotlight.classList.remove('pulse');
       if (promptEl) promptEl.remove();
+      document.getElementById('app')?.classList.remove('guide-elevate-sheet', 'guide-elevate-header');
       api.closeGuideLayers();
     }
 
@@ -108,7 +109,7 @@
       return document.querySelector(step.target);
     }
 
-    function rectsOverlap(a, b, gap = 6) {
+    function rectsOverlap(a, b, gap = 16) {
       return !(a.right + gap < b.left || a.left - gap > b.right
         || a.bottom + gap < b.top || a.top - gap > b.bottom);
     }
@@ -205,9 +206,17 @@
       const bubbleBox = { left: bx, top: by, right: bx + bubbleW, bottom: by + bubbleH };
 
       if (rectsOverlap(bubbleBox, targetBox)) {
-        by = headerH + 10;
-        bx = Math.max(12, Math.min(appRect.width - bubbleW - 12, cx - bubbleW / 2));
-        arrowDir = 'down';
+        if (spaceBelow >= bubbleH + 36 && !dockTop) {
+          by = y + h + margin;
+          arrowDir = 'up';
+        } else if (spaceAbove >= bubbleH + 36) {
+          by = y - bubbleH - margin;
+          arrowDir = 'down';
+        } else {
+          by = headerH + 10;
+          bx = Math.max(12, Math.min(appRect.width - bubbleW - 12, cx - bubbleW / 2));
+          arrowDir = 'down';
+        }
       }
 
       bubble.style.left = `${bx}px`;
@@ -275,6 +284,14 @@
       updateStepUI(step);
       overlay.hidden = false;
       overlay.classList.add('active');
+
+      const appEl = document.getElementById('app');
+      if (appEl) {
+        appEl.classList.remove('guide-elevate-sheet', 'guide-elevate-header');
+        if (step.keepSheet) appEl.classList.add('guide-elevate-sheet');
+        if (step.target === '#btnFilter') appEl.classList.add('guide-elevate-header');
+      }
+
       schedulePosition(step);
     }
 
@@ -282,7 +299,8 @@
       if (!active || index >= steps.length) return;
       const step = steps[index];
       if (step.waitFor !== event) return;
-      showStep(index + 1);
+      // 让用户先看到点击结果（活动卡片/筛选面板等），再进入下一步
+      setTimeout(() => showStep(index + 1), 450);
     }
 
     function showWelcomePrompt() {
@@ -334,6 +352,9 @@
 
     return {
       onUserAction,
+      isActive() {
+        return active;
+      },
       restart() {
         localStorage.removeItem(STORAGE_KEY);
         active = false;

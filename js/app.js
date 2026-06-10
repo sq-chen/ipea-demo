@@ -6,8 +6,7 @@
   const MARKER_HIT_RADIUS = 5.5;
   const IS_TOUCH_DEVICE = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
   /** 超过此距离才算拖动；真机手指抖动大，阈值需更高 */
-  const TAP_MOVE_THRESHOLD = IS_TOUCH_DEVICE ? 18 : 8;
-  const TAP_SLOP = IS_TOUCH_DEVICE ? 14 : 8;
+  const TAP_MOVE_THRESHOLD = IS_TOUCH_DEVICE ? 24 : 8;
 
   const state = {
     selectedId: null,
@@ -253,6 +252,20 @@
 
     updateMapCount();
     updateFilterBar();
+    bindMarkerEvents();
+  }
+
+  function bindMarkerEvents() {
+    markersLayer.querySelectorAll('.marker').forEach((el) => {
+      el.addEventListener('mousedown', (e) => e.stopPropagation());
+      el.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (Date.now() < suppressMarkerClickUntil) return;
+        const id = el.dataset.id;
+        if (id) openSheet(id);
+      });
+    });
   }
 
   function openClusterPicker(activities) {
@@ -1068,7 +1081,7 @@
 
     function onDragMove(clientX, clientY) {
       if (!state.dragging || state.pinching) return;
-      if (Math.hypot(clientX - state.dragPointer.x, clientY - state.dragPointer.y) > TAP_SLOP) {
+      if (Math.hypot(clientX - state.dragPointer.x, clientY - state.dragPointer.y) > TAP_MOVE_THRESHOLD) {
         state.mapDidMove = true;
       }
       state.mapX = state.dragStart.mapX + (clientX - state.dragStart.x);
@@ -1167,8 +1180,7 @@
       }
       if (touchTapPending && e.touches.length === 1) {
         const t = e.touches[0];
-        const dist = Math.hypot(t.clientX - touchStartPoint.x, t.clientY - touchStartPoint.y);
-        if (dist > TAP_SLOP) {
+        if (tapMoved(t.clientX, t.clientY)) {
           onDragStart(touchStartPoint.x, touchStartPoint.y);
           onDragMove(t.clientX, t.clientY);
           e.preventDefault();
@@ -1247,6 +1259,7 @@
   function initUI() {
     $('#btnCloseSheet').addEventListener('click', closeSheet);
     backdrop.addEventListener('click', () => {
+      if (guideCtrl?.isActive?.()) return;
       closeSheet();
       closeClusterPicker();
     });
