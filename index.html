@@ -20,6 +20,7 @@
   </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#FF6B35">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='16' fill='%23FF6B35'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-size='18' fill='white' font-family='sans-serif' font-weight='700'%3EI%3C/text%3E%3C/svg%3E">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Ipea · 点亮身边的好活动</title>
@@ -69,8 +70,8 @@
     <!-- 推荐列表 -->
     <div class="recommend-panel" id="recommendPanel">
       <div class="recommend-header">
-        <h2>下午好，为你推荐附近的好活动</h2>
-        <p>基于你的位置与热门活动</p>
+        <h2 id="recommendHeaderTitle">下午好，为你推荐附近的好活动</h2>
+        <p id="recommendHeaderSub">基于你的位置与热门活动</p>
       </div>
       <div class="recommend-list" id="recommendList"></div>
     </div>
@@ -103,6 +104,14 @@
       </div>
       <p class="filter-section-label">类别（多选）</p>
       <div class="filter-chips" id="filterChips"></div>
+      <p class="filter-section-label">时间（单选）</p>
+      <div class="filter-chips filter-chips-radio" id="filterTimeChips"></div>
+      <p class="filter-section-label">距离（单选）</p>
+      <div class="filter-chips filter-chips-radio" id="filterDistanceChips"></div>
+      <p class="filter-section-label">评分（单选）</p>
+      <div class="filter-chips filter-chips-radio" id="filterRatingChips"></div>
+      <p class="filter-section-label">价格（单选）</p>
+      <div class="filter-chips filter-chips-radio" id="filterPriceChips"></div>
       <div class="filter-actions">
         <button type="button" class="btn btn-ghost" id="btnFilterReset">重置</button>
         <button type="button" class="btn btn-primary" id="btnFilterApply">查看结果</button>
@@ -144,6 +153,13 @@
           </div>
           <h3 class="detail-section-title">活动介绍</h3>
           <p class="detail-desc" id="detailDesc"></p>
+          <div class="detail-live" id="detailLiveSection" hidden>
+            <div class="detail-section-head">
+              <h3 class="detail-section-title">现场直击</h3>
+              <button type="button" class="detail-live-ask" id="btnAskLive">问一下现场</button>
+            </div>
+            <div class="live-feed" id="liveFeed"></div>
+          </div>
           <div class="detail-action-card" id="detailActionCard">
             <button type="button" class="detail-action-btn" id="btnCheckin">
               <span class="detail-action-icon">📍</span>
@@ -169,6 +185,7 @@
       </div>
       <div class="detail-footer">
         <button type="button" class="btn btn-ghost detail-share" id="btnShare">分享</button>
+        <button type="button" class="btn btn-ghost detail-ticket" id="btnBuyTicket" hidden>立即购票</button>
         <button type="button" class="btn btn-primary detail-want" id="btnWant">想去</button>
       </div>
     </div>
@@ -254,15 +271,17 @@
       <button type="button" class="btn btn-primary" id="btnReviewSubmit">发布评价</button>
     </div>
 
-    <!-- 分步引导 -->
+    <!-- 分步引导：指向目标 + 点击继续 -->
     <div class="guide-overlay" id="guideOverlay" hidden>
-      <div class="guide-backdrop" id="guideBackdrop"></div>
-      <div class="guide-ring" id="guideRing" hidden></div>
+      <div class="guide-spotlight" id="guideSpotlight" hidden></div>
       <div class="guide-bubble" id="guideBubble">
+        <div class="guide-arrow guide-arrow-up" id="guideArrow"></div>
+        <span class="guide-tag" id="guideTag">地图</span>
         <p class="guide-text" id="guideText"></p>
+        <p class="guide-hint" id="guideHint">👆 请点击高亮区域继续</p>
         <div class="guide-actions">
           <button type="button" class="guide-skip" id="btnGuideSkip">跳过</button>
-          <span class="guide-step-num">1 / 6</span>
+          <span class="guide-step-num">1 / 5</span>
           <button type="button" class="btn btn-primary btn-sm" id="btnGuideNext">下一步</button>
         </div>
       </div>

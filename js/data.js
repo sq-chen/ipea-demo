@@ -48,6 +48,9 @@ const ACTIVITIES = [
     category: 'exhibition',
     x: 72, y: 50,
     distance: '8.2km',
+    distanceKm: 8.2,
+    timeFilter: 'ongoing',
+    paid: false,
     time: '进行中',
     status: 'ongoing',
     rating: 4.8,
@@ -63,6 +66,9 @@ const ACTIVITIES = [
     category: 'food',
     x: 27, y: 34,
     distance: '1.8km',
+    distanceKm: 1.8,
+    timeFilter: 'weekend',
+    paid: false,
     time: '6月14日 10:00',
     status: 'upcoming',
     rating: 4.6,
@@ -78,6 +84,9 @@ const ACTIVITIES = [
     category: 'sport',
     x: 48, y: 36,
     distance: '2.5km',
+    distanceKm: 2.5,
+    timeFilter: 'ongoing',
+    paid: false,
     time: '进行中',
     status: 'ongoing',
     rating: 4.5,
@@ -93,6 +102,10 @@ const ACTIVITIES = [
     category: 'music',
     x: 35, y: 48,
     distance: '2.1km',
+    distanceKm: 2.1,
+    timeFilter: 'weekend',
+    paid: true,
+    priceLabel: '¥68 起',
     time: '6月14日 19:30',
     status: 'upcoming',
     rating: 4.7,
@@ -108,6 +121,9 @@ const ACTIVITIES = [
     category: 'exhibition',
     x: 38, y: 24,
     distance: '1.2km',
+    distanceKm: 1.2,
+    timeFilter: 'ongoing',
+    paid: false,
     time: '进行中',
     status: 'ongoing',
     rating: 4.9,
@@ -123,6 +139,9 @@ const ACTIVITIES = [
     category: 'food',
     x: 56, y: 30,
     distance: '0.8km',
+    distanceKm: 0.8,
+    timeFilter: 'weekend',
+    paid: false,
     time: '6月15日 11:00',
     status: 'upcoming',
     rating: 4.2,
@@ -138,6 +157,10 @@ const ACTIVITIES = [
     category: 'music',
     x: 33, y: 43,
     distance: '2.8km',
+    distanceKm: 2.8,
+    timeFilter: 'today',
+    paid: true,
+    priceLabel: '¥48',
     time: '6月13日 20:00',
     status: 'upcoming',
     rating: 4.4,
@@ -153,6 +176,9 @@ const ACTIVITIES = [
     category: 'sport',
     x: 51, y: 47,
     distance: '3.5km',
+    distanceKm: 3.5,
+    timeFilter: 'weekend',
+    paid: false,
     time: '6月14日 20:00',
     status: 'upcoming',
     rating: 4.3,
@@ -168,6 +194,9 @@ const ACTIVITIES = [
     category: 'exhibition',
     x: 52, y: 22,
     distance: '1.5km',
+    distanceKm: 1.5,
+    timeFilter: 'ongoing',
+    paid: false,
     time: '进行中',
     status: 'ongoing',
     rating: 4.1,
@@ -183,6 +212,10 @@ const ACTIVITIES = [
     category: 'social',
     x: 46, y: 52,
     distance: '3.8km',
+    distanceKm: 3.8,
+    timeFilter: 'weekend',
+    paid: true,
+    priceLabel: '¥128',
     time: '6月14日 18:00',
     status: 'upcoming',
     rating: 4.5,
@@ -198,6 +231,9 @@ const ACTIVITIES = [
     category: 'sport',
     x: 60, y: 24,
     distance: '1.0km',
+    distanceKm: 1.0,
+    timeFilter: 'weekend',
+    paid: false,
     time: '6月15日 15:00',
     status: 'upcoming',
     rating: 4.0,
@@ -213,6 +249,9 @@ const ACTIVITIES = [
     category: 'social',
     x: 25, y: 41,
     distance: '2.0km',
+    distanceKm: 2.0,
+    timeFilter: 'ongoing',
+    paid: false,
     time: '进行中',
     status: 'ongoing',
     rating: 4.6,
@@ -324,6 +363,44 @@ function getOrganizer(activityId) {
 function getHighlight(activityId) {
   return HIGHLIGHTS[activityId] || '附近热门活动';
 }
+
+/** 现场直击 mock 播报 */
+const LIVE_UPDATES = {
+  a2: [
+    { time: '8 分钟前', user: '现场小助手', text: '市集刚开门，部分摊位还在布置，建议 10:30 后再来。' },
+    { time: '25 分钟前', user: '逛展的 Mia', text: '永庆坊入口人流适中，广府小吃区排队约 5 分钟。' },
+  ],
+  a3: [
+    { time: '刚刚', user: '飞盘社志愿者', text: '正在进行友谊赛，新手组还有 3 个名额，可现场加入。' },
+    { time: '15 分钟前', user: '路人阿Ken', text: '草坪有点晒，建议带帽子；借盘处排队很快。' },
+  ],
+  a5: [
+    { time: '12 分钟前', user: '馆方播报', text: '特展展厅人流舒适，数字互动区无需排队。' },
+    { time: '40 分钟前', user: '看展人', text: '古埃及区讲解很精彩，建议预留 1.5 小时。' },
+  ],
+  a6: [
+    { time: '20 分钟前', user: '快闪主办方', text: '试吃券已发放 60%，预计 12:00 后名额紧张。' },
+  ],
+  a10: [
+    { time: '5 分钟前', user: '现场主持', text: '破冰桌游第一轮即将开始，已购票可直接入场。' },
+    { time: '30 分钟前', user: '精酿控', text: '江边风大，室外位略冷，室内区还有空位。' },
+  ],
+  a12: [
+    { time: '刚刚', user: '晨练社', text: '太极体验进行中，现在加入无需预约。' },
+  ],
+};
+
+function getLiveUpdates(activityId) {
+  return LIVE_UPDATES[activityId] || null;
+}
+
+/** 筛选：时间维度标签 */
+const TIME_FILTER_LABELS = {
+  ongoing: '进行中',
+  today: '今天',
+  weekend: '本周末',
+  week: '本周',
+};
 
 /** 计算标记显示坐标（自动散开重叠点，保留最大偏移量） */
 function computeMarkerDisplayPositions(activities, minDist = 4.5, maxDrift = 5.5) {

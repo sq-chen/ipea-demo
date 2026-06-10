@@ -20,10 +20,20 @@
     pinchStart: { dist: 0, scale: 1, mapX: 0, mapY: 0, cx: 0, cy: 0 },
     activeTab: 'map',
     filterCategories: null,
+    filterTime: null,
+    filterDistance: null,
+    filterRating: null,
+    filterPrice: null,
     filterDraft: new Set(),
+    filterDraftTime: null,
+    filterDraftDistance: null,
+    filterDraftRating: null,
+    filterDraftPrice: null,
     user: null,
     wantList: new Set(),
     checkinList: new Set(),
+    ticketList: new Set(),
+    userPoints: 0,
     userReviews: new Map(),
     pendingLoginCallback: null,
     profileSeg: 'want',
@@ -62,6 +72,18 @@
     closeReviewSheet();
   }
 
+  function closeGuideLayers() {
+    closeFilterPanel();
+    closeLoginModal();
+    closeReviewSheet();
+  }
+
+  let guideCtrl = null;
+
+  function notifyGuide(event) {
+    guideCtrl?.onUserAction(event);
+  }
+
   function openLoginModal() {
     $('#loginBackdrop').classList.add('show');
     $('#loginModal').classList.add('show');
@@ -74,7 +96,7 @@
   }
 
   function mockLogin() {
-    state.user = { name: '小橙', avatar: '🍊' };
+    state.user = { name: '小橙', avatar: '🍊', badges: [] };
     closeLoginModal();
     showToast('登录成功，欢迎回来！');
     if (state.pendingLoginCallback) {
@@ -99,16 +121,53 @@
     return ACTIVITIES.find((a) => a.id === id);
   }
 
-  function getFilteredActivities() {
-    if (!state.filterCategories || state.filterCategories.size === 0) {
-      return ACTIVITIES;
+  function matchesTimeFilter(act, timeFilter) {
+    if (!timeFilter) return true;
+    if (timeFilter === 'week') return act.timeFilter !== 'ongoing';
+    return act.timeFilter === timeFilter;
+  }
+
+  function activityMatchesFilters(act) {
+    if (state.filterCategories && state.filterCategories.size > 0
+      && !state.filterCategories.has(act.category)) {
+      return false;
     }
-    return ACTIVITIES.filter((a) => state.filterCategories.has(a.category));
+    if (!matchesTimeFilter(act, state.filterTime)) return false;
+    if (state.filterDistance != null && act.distanceKm > state.filterDistance) return false;
+    if (state.filterRating != null && act.rating < state.filterRating) return false;
+    if (state.filterPrice === 'free' && act.paid) return false;
+    if (state.filterPrice === 'paid' && !act.paid) return false;
+    return true;
+  }
+
+  function getFilteredActivities() {
+    const hasCat = state.filterCategories && state.filterCategories.size > 0;
+    const hasExtra = state.filterTime || state.filterDistance != null
+      || state.filterRating != null || state.filterPrice;
+    if (!hasCat && !hasExtra) return ACTIVITIES;
+    return ACTIVITIES.filter(activityMatchesFilters);
   }
 
   function isFilterActive() {
-    return state.filterCategories && state.filterCategories.size > 0
+    const catActive = state.filterCategories && state.filterCategories.size > 0
       && state.filterCategories.size < CATEGORY_KEYS.length;
+    return catActive || !!state.filterTime || state.filterDistance != null
+      || state.filterRating != null || !!state.filterPrice;
+  }
+
+  function getJoinedIds() {
+    return new Set([...state.checkinList, ...state.ticketList]);
+  }
+
+  function getInterestCategories() {
+    const counts = {};
+    state.wantList.forEach((id) => {
+      const act = getActivity(id);
+      if (act) counts[act.category] = (counts[act.category] || 0) + 1;
+    });
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([key]) => key);
   }
 
   function updateMapCount() {
@@ -248,6 +307,7 @@
     renderSheet(act);
     sheet.classList.add('show');
     backdrop.classList.add('show');
+    notifyGuide('marker-tap');
   }
 
   function closeSheet() {
@@ -277,7 +337,40 @@
     $('#detailTime').textContent = act.time;
     $('#detailAddress').textContent = act.address;
     $('#detailDesc').textContent = act.desc;
+
+    const live = getLiveUpdates(id);
+    const liveSection = $('#detailLiveSection');
+    if (live && live.length) {
+      liveSection.hidden = false;
+      $('#liveFeed').innerHTML = live.map((item) => `
+        <div class="live-item">
+          <div class="live-item-top">
+            <span class="live-user">${item.user}</span>
+            <span class="live-time">${item.time}</span>
+          </div>
+          <p class="live-text">${item.text}</p>
+        </div>`).join('');
+    } else {
+      liveSection.hidden = true;
+    }
+
     $('#detailCommentCount').textContent = `共 ${comments.length + (userReview ? 1 : 0)} 条`;
+
+    const ticketBtn = $('#btnBuyTicket');
+    if (act.paid) {
+      ticketBtn.hidden = false;
+      if (state.ticketList.has(id)) {
+        ticketBtn.textContent = '已购票';
+        ticketBtn.classList.add('done');
+        ticketBtn.disabled = true;
+      } else {
+        ticketBtn.textContent = act.priceLabel ? `购票 ${act.priceLabel}` : '立即购票';
+        ticketBtn.classList.remove('done');
+        ticketBtn.disabled = false;
+      }
+    } else {
+      ticketBtn.hidden = true;
+    }
 
     const checkinBtn = $('#btnCheckin');
     const reviewBtn = $('#btnReview');
@@ -386,6 +479,7 @@
     $('#detailPage').hidden = false;
     app.classList.add('detail-open');
     $('#detailScroll').scrollTop = 0;
+    notifyGuide('detail-open');
   }
 
   function closeDetail() {
@@ -419,15 +513,85 @@
     });
   }
 
-  function openFilterPanel() {
+  function renderFilterRadioGroup(containerId, options, draftValue, onChange) {
+    const el = $(containerId);
+    el.innerHTML = options.map((opt) => {
+      const on = draftValue === opt.value;
+      return `
+        <button type="button" class="filter-chip filter-chip-radio${on ? ' on' : ''}"
+                data-value="${opt.value === null ? '' : opt.value}">
+          ${opt.label}
+        </button>`;
+    }).join('');
+
+    el.querySelectorAll('.filter-chip-radio').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        const raw = chip.dataset.value;
+        let val = null;
+        if (raw !== '') {
+          if (['free', 'paid', 'ongoing', 'today', 'weekend', 'week'].includes(raw)) {
+            val = raw;
+          } else if (raw.includes('.')) {
+            val = parseFloat(raw);
+          } else {
+            val = Number(raw);
+          }
+        }
+        onChange(draftValue === val ? null : val);
+        renderFilterPanel();
+      });
+    });
+  }
+
+  function renderFilterPanel() {
+    renderFilterChips();
+    renderFilterRadioGroup('#filterTimeChips', [
+      { value: null, label: '不限' },
+      { value: 'ongoing', label: '进行中' },
+      { value: 'today', label: '今天' },
+      { value: 'weekend', label: '本周末' },
+      { value: 'week', label: '本周' },
+    ], state.filterDraftTime, (v) => { state.filterDraftTime = v; });
+
+    renderFilterRadioGroup('#filterDistanceChips', [
+      { value: null, label: '不限' },
+      { value: 1, label: '<1km' },
+      { value: 5, label: '5km' },
+      { value: 10, label: '10km' },
+    ], state.filterDraftDistance, (v) => { state.filterDraftDistance = v; });
+
+    renderFilterRadioGroup('#filterRatingChips', [
+      { value: null, label: '不限' },
+      { value: 3.5, label: '≥3.5' },
+      { value: 4.0, label: '≥4.0' },
+      { value: 4.5, label: '≥4.5' },
+    ], state.filterDraftRating, (v) => { state.filterDraftRating = v; });
+
+    renderFilterRadioGroup('#filterPriceChips', [
+      { value: null, label: '全部' },
+      { value: 'free', label: '免费' },
+      { value: 'paid', label: '付费' },
+    ], state.filterDraftPrice, (v) => { state.filterDraftPrice = v; });
+  }
+
+  function syncFilterDraftFromActive() {
     if (state.filterCategories && state.filterCategories.size > 0) {
       state.filterDraft = new Set(state.filterCategories);
     } else {
       state.filterDraft = new Set(CATEGORY_KEYS);
     }
-    renderFilterChips();
+    state.filterDraftTime = state.filterTime;
+    state.filterDraftDistance = state.filterDistance;
+    state.filterDraftRating = state.filterRating;
+    state.filterDraftPrice = state.filterPrice;
+  }
+
+  function openFilterPanel() {
+    syncFilterDraftFromActive();
+    renderFilterPanel();
     $('#filterPanel').classList.add('show');
     $('#filterBackdrop').classList.add('show');
+    notifyGuide('filter-open');
   }
 
   function closeFilterPanel() {
@@ -441,34 +605,68 @@
     } else {
       state.filterCategories = new Set(state.filterDraft);
     }
+    state.filterTime = state.filterDraftTime || null;
+    state.filterDistance = state.filterDraftDistance ?? null;
+    state.filterRating = state.filterDraftRating ?? null;
+    state.filterPrice = state.filterDraftPrice || null;
     closeFilterPanel();
     closeSheet();
     renderMarkers();
     renderRecommendList();
     const n = getFilteredActivities().length;
-    showToast(state.filterCategories ? `已筛选，找到 ${n} 个活动` : '已显示全部活动');
+    showToast(isFilterActive() ? `已筛选，找到 ${n} 个活动` : '已显示全部活动');
   }
 
   function resetFilterDraft() {
     state.filterDraft = new Set(CATEGORY_KEYS);
-    renderFilterChips();
+    state.filterDraftTime = null;
+    state.filterDraftDistance = null;
+    state.filterDraftRating = null;
+    state.filterDraftPrice = null;
+    renderFilterPanel();
   }
 
   function clearFilter() {
     state.filterCategories = null;
+    state.filterTime = null;
+    state.filterDistance = null;
+    state.filterRating = null;
+    state.filterPrice = null;
     closeSheet();
     renderMarkers();
     renderRecommendList();
     showToast('已清除筛选');
   }
 
+  function renderRecommendHeader() {
+    const interests = getInterestCategories();
+    const titleEl = $('#recommendHeaderTitle');
+    const subEl = $('#recommendHeaderSub');
+    if (interests.length > 0) {
+      const cat = CATEGORIES[interests[0]];
+      titleEl.textContent = `下午好，猜你喜欢${cat.label}类活动`;
+      subEl.textContent = '根据你的「想去」偏好推荐';
+    } else {
+      titleEl.textContent = '下午好，为你推荐附近的好活动';
+      subEl.textContent = '基于你的位置与热门活动';
+    }
+  }
+
   function getRecommendList() {
+    const interests = getInterestCategories();
+    const primary = interests[0];
     return [...getFilteredActivities()]
-      .sort((a, b) => b.rating - a.rating || b.reviewCount - a.reviewCount)
+      .sort((a, b) => {
+        const aPref = primary && a.category === primary ? 1 : 0;
+        const bPref = primary && b.category === primary ? 1 : 0;
+        if (bPref !== aPref) return bPref - aPref;
+        return b.rating - a.rating || b.reviewCount - a.reviewCount;
+      })
       .slice(0, 8);
   }
 
   function renderRecommendList() {
+    renderRecommendHeader();
     const list = getRecommendList();
     const el = $('#recommendList');
     if (list.length === 0) {
@@ -519,8 +717,23 @@
         showToast('已取消想去');
       } else {
         state.wantList.add(id);
-        showToast('已加入想去清单');
+        showToast('已加入想去清单，活动开始前会提醒你');
       }
+      if (state.detailId === id) renderDetail(id);
+      if (state.activeTab === 'profile') renderProfileContent();
+      if (state.activeTab === 'recommend') renderRecommendList();
+    });
+  }
+
+  function buyTicket(id) {
+    requireLogin(() => {
+      if (state.ticketList.has(id)) {
+        showToast('你已经购过票了');
+        return;
+      }
+      const act = getActivity(id);
+      state.ticketList.add(id);
+      showToast(`购票成功！${act.name} 已加入「我的活动」`);
       if (state.detailId === id) renderDetail(id);
       if (state.activeTab === 'profile') renderProfileContent();
     });
@@ -603,21 +816,38 @@
       time: '刚刚',
     });
 
+    state.userPoints += 10;
+    const reviewTotal = state.userReviews.size;
+    const earnedBadge = reviewTotal >= 3 && !(state.user.badges && state.user.badges.includes('reviewer'));
+    if (earnedBadge) {
+      state.user.badges = state.user.badges || [];
+      state.user.badges.push('reviewer');
+    }
+
     closeReviewSheet();
     renderMarkers();
     renderRecommendList();
     if (state.detailId === id) renderDetail(id);
     if (state.activeTab === 'profile') renderProfileContent();
+    renderProfileHeader();
 
     const becameHigh = isHighScore(act);
-    showToast(becameHigh ? '评价已发布！该活动已成为高分活动 ⭐' : '评价已发布，感谢点亮好活动');
+    if (earnedBadge) {
+      showToast('感谢分享！+10 积分 · 获得「评价者」勋章 🏅', 3200);
+    } else if (becameHigh) {
+      showToast('感谢分享！+10 积分 · 该活动已成为高分活动 ⭐', 2800);
+    } else {
+      showToast('感谢分享！+10 积分', 2600);
+    }
   }
 
   function renderProfileHeader() {
     if (state.user) {
       $('#profileAvatar').textContent = state.user.avatar;
       $('#profileName').textContent = state.user.name;
-      $('#profileSub').textContent = '演示账号 · 数据仅保存在本页';
+      const badge = state.user.badges && state.user.badges.includes('reviewer') ? ' · 🏅评价者' : '';
+      const pts = state.userPoints > 0 ? `积分 ${state.userPoints}${badge}` : `演示账号${badge}`;
+      $('#profileSub').textContent = pts + ' · 数据仅保存在本页';
       $('#btnProfileLogin').hidden = true;
     } else {
       $('#profileAvatar').textContent = '👤';
@@ -626,7 +856,7 @@
       $('#btnProfileLogin').hidden = false;
     }
     $('#profileWantCount').textContent = state.wantList.size;
-    $('#profileJoinedCount').textContent = state.checkinList.size;
+    $('#profileJoinedCount').textContent = getJoinedIds().size;
     $('#profileReviewCount').textContent = state.userReviews.size;
   }
 
@@ -659,20 +889,27 @@
           </div>`;
       }).join('');
     } else if (seg === 'joined') {
-      if (state.checkinList.size === 0) {
-        el.innerHTML = '<div class="profile-empty">还没有打卡记录<br>到达活动现场后可打卡</div>';
+      const joined = [...getJoinedIds()];
+      if (joined.length === 0) {
+        el.innerHTML = '<div class="profile-empty">还没有参与记录<br>购票或现场打卡后会出现在这里</div>';
         return;
       }
-      el.innerHTML = [...state.checkinList].map((id) => {
+      el.innerHTML = joined.map((id) => {
         const act = getActivity(id);
         if (!act) return '';
         const reviewed = state.userReviews.has(id);
+        const hasTicket = state.ticketList.has(id);
+        const hasCheckin = state.checkinList.has(id);
+        let status = '';
+        if (hasTicket && hasCheckin) status = '已购票 · 已打卡';
+        else if (hasTicket) status = '已购票 · 待参加';
+        else status = `已打卡 · ${reviewed ? '已评价' : '待写评价'}`;
         return `
           <div class="profile-item" data-id="${id}">
             <div class="profile-item-thumb" style="${thumbStyle(act.thumb)}"></div>
             <div class="profile-item-info">
               <div class="profile-item-name">${act.name}</div>
-              <div class="profile-item-meta">已打卡 · ${reviewed ? '已评价' : '待写评价'}</div>
+              <div class="profile-item-meta">${status}${act.paid && hasTicket ? ' · 🎫' : ''}</div>
             </div>
           </div>`;
       }).join('');
@@ -745,6 +982,12 @@
     }
   }
 
+  let clampResizeTimer = null;
+  function scheduleClampToBounds() {
+    clearTimeout(clampResizeTimer);
+    clampResizeTimer = setTimeout(clampToBounds, 120);
+  }
+
   function clampScale(value) {
     return Math.max(ZOOM.min, Math.min(ZOOM.max, value));
   }
@@ -785,12 +1028,26 @@
 
   function initMapGestures() {
     const wrap = $('.map-wrap');
+    let touchActive = false;
+    let touchIdleTimer = null;
+
+    function markTouchActive() {
+      touchActive = true;
+      clearTimeout(touchIdleTimer);
+      touchIdleTimer = setTimeout(() => {
+        touchActive = false;
+      }, 450);
+    }
 
     function tryMarkerTap(clientX, clientY) {
       if (state.mapDidMove) return;
       const nearby = getMarkersNearPoint(clientX, clientY);
       if (nearby.length === 0) return;
       handleMarkerTap(clientX, clientY);
+    }
+
+    function tapMoved(clientX, clientY) {
+      return Math.hypot(clientX - state.dragStart.x, clientY - state.dragStart.y) > TAP_MOVE_THRESHOLD;
     }
 
     function onDragStart(clientX, clientY) {
@@ -846,11 +1103,18 @@
     }
 
     wrap.addEventListener('mousedown', (e) => {
+      if (touchActive) return;
       if (e.target.closest('.map-controls') || e.target.closest('.filter-bar')) return;
       onDragStart(e.clientX, e.clientY);
     });
-    window.addEventListener('mousemove', (e) => onDragMove(e.clientX, e.clientY));
-    window.addEventListener('mouseup', onDragEnd);
+    window.addEventListener('mousemove', (e) => {
+      if (touchActive) return;
+      onDragMove(e.clientX, e.clientY);
+    });
+    window.addEventListener('mouseup', (e) => {
+      if (touchActive) return;
+      onDragEnd();
+    });
 
     wrap.addEventListener('wheel', (e) => {
       if (state.selectedId || state.detailId) return;
@@ -860,6 +1124,7 @@
 
     wrap.addEventListener('touchstart', (e) => {
       if (e.target.closest('.activity-sheet') || e.target.closest('.filter-bar')) return;
+      markTouchActive();
       if (e.touches.length === 2) {
         onPinchStart(e.touches);
         return;
@@ -869,19 +1134,11 @@
     }, { passive: true });
 
     wrap.addEventListener('click', (e) => {
+      if (touchActive) return;
       if (e.target.closest('.map-controls') || e.target.closest('.filter-bar')) return;
       if (Date.now() < suppressMarkerClickUntil) return;
       tryMarkerTap(e.clientX, e.clientY);
     });
-
-    wrap.addEventListener('touchend', (e) => {
-      if (state.mapDidMove || state.pinching) return;
-      if (e.changedTouches.length !== 1) return;
-      if (e.target.closest('.map-controls') || e.target.closest('.filter-bar')) return;
-      const t = e.changedTouches[0];
-      suppressMarkerClickUntil = Date.now() + 400;
-      tryMarkerTap(t.clientX, t.clientY);
-    }, { passive: true });
 
     wrap.addEventListener('touchmove', (e) => {
       if (e.touches.length === 2 && state.pinching) {
@@ -895,12 +1152,22 @@
     }, { passive: false });
 
     wrap.addEventListener('touchend', (e) => {
+      markTouchActive();
       if (e.touches.length < 2) state.pinching = false;
-      if (e.touches.length === 0) onDragEnd();
-      else if (e.touches.length === 1 && !state.pinching) {
+      if (e.touches.length === 0) {
+        if (!state.pinching && e.changedTouches.length === 1) {
+          const t = e.changedTouches[0];
+          const moved = state.mapDidMove || tapMoved(t.clientX, t.clientY);
+          if (!moved && !e.target.closest('.map-controls') && !e.target.closest('.filter-bar')) {
+            suppressMarkerClickUntil = Date.now() + 400;
+            tryMarkerTap(t.clientX, t.clientY);
+          }
+        }
+        onDragEnd();
+      } else if (e.touches.length === 1 && !state.pinching) {
         onDragStart(e.touches[0].clientX, e.touches[0].clientY);
       }
-    });
+    }, { passive: true });
   }
 
   function resetMapView() {
@@ -923,6 +1190,7 @@
     if (tab !== 'map') closeSheet();
     if (tab === 'recommend') renderRecommendList();
     if (tab === 'profile') renderProfileContent();
+    if (tab === 'recommend') notifyGuide('tab-recommend');
   }
 
   function initTabs() {
@@ -960,6 +1228,12 @@
     $('#btnWant').addEventListener('click', () => {
       if (state.detailId) toggleWant(state.detailId);
     });
+    $('#btnBuyTicket').addEventListener('click', () => {
+      if (state.detailId) buyTicket(state.detailId);
+    });
+    $('#btnAskLive').addEventListener('click', () => {
+      showToast('已发送提问：「现在人多吗？大概能逛多久？」现场用户稍后回复（演示）');
+    });
     $('#btnCheckin').addEventListener('click', () => {
       if (state.detailId) doCheckin(state.detailId);
     });
@@ -989,14 +1263,17 @@
     initTabs();
     initUI();
     clampToBounds();
-    window.addEventListener('resize', clampToBounds);
+    window.addEventListener('resize', scheduleClampToBounds, { passive: true });
 
     if (typeof initGuide === 'function') {
-      initGuide({
+      guideCtrl = initGuide({
         switchTab,
         openSheet,
         openDetail,
         closeDetail,
+        closeSheet,
+        closeFilterPanel,
+        closeGuideLayers,
         closeAllOverlays,
         showToast,
       });
