@@ -1,15 +1,43 @@
-/** 图片 CDN 参数（统一尺寸，加载更快） */
-const IMG = (id) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=800&q=80`;
+/** 活动配图文件名（由 scripts/import_pic.py 从 pic 文件夹导入） */
+const ACTIVITY_IMAGE_FILES = {
+  a1: 'a1.jpg',
+  a2: 'a2.jpg',
+  a3: 'a3.webp',
+  a4: 'a4.jpg',
+  a5: 'a5.jpg',
+  a6: 'a6.jfif',
+  a7: 'a7.jpg',
+  a8: 'a8.jfif',
+  a9: 'a9.webp',
+  a10: 'a10.webp',
+  a11: 'a11.webp',
+  a12: 'a12.jpg',
+};
 
-/** 设置缩略图/头图（支持 URL 或 CSS 渐变） */
+/** 本地活动配图（随仓库一起部署，不依赖外网） */
+function actImg(activityId) {
+  const file = ACTIVITY_IMAGE_FILES[activityId] || `${activityId}.jpg`;
+  return `assets/activities/${file}`;
+}
+
+/** 设置缩略图/头图（支持本地路径、URL 或 CSS 渐变） */
 function applyThumb(el, thumb) {
   if (!el || !thumb) return;
-  if (String(thumb).startsWith('http')) {
-    el.style.background = `url("${thumb}") center/cover no-repeat`;
+  const src = String(thumb);
+  if (src.startsWith('http') || src.startsWith('assets/')) {
+    el.style.background = `url("${src}") center/cover no-repeat`;
     el.style.backgroundColor = '#E8EAED';
   } else {
     el.style.background = thumb;
   }
+}
+
+function thumbStyle(thumb) {
+  const src = String(thumb);
+  if (src.startsWith('http') || src.startsWith('assets/')) {
+    return `background:url('${src}') center/cover no-repeat;background-color:#E8EAED`;
+  }
+  return `background:${thumb}`;
 }
 
 /** 活动类别配置 */
@@ -35,7 +63,7 @@ const ACTIVITIES = [
     reviewCount: 326,
     address: '广州大学城广州美术学院',
     district: '番禺',
-    thumb: IMG('photo-1541961017774-80aaf41a3ff5'),
+    thumb: actImg('a1'),
     desc: '研究生与本科生毕业联展，免费参观。',
   },
   {
@@ -50,7 +78,7 @@ const ACTIVITIES = [
     reviewCount: 189,
     address: '荔湾区恩宁路永庆坊',
     district: '荔湾',
-    thumb: IMG('photo-1771308752056-9c82af3ba765'),
+    thumb: actImg('a2'),
     desc: '手作、文创与广府小吃，适合周末闲逛。',
   },
   {
@@ -65,7 +93,7 @@ const ACTIVITIES = [
     reviewCount: 94,
     address: '越秀区二沙岛体育公园',
     district: '越秀',
-    thumb: IMG('photo-1612872087727-6c4d42a45781'),
+    thumb: actImg('a3'),
     desc: '新手友好，现场可借盘，每周六下午。',
   },
   {
@@ -80,7 +108,7 @@ const ACTIVITIES = [
     reviewCount: 215,
     address: '海珠区革新路太古仓码头',
     district: '海珠',
-    thumb: IMG('photo-1493225457124-a3eb161ffa5f'),
+    thumb: actImg('a4'),
     desc: '江边露天 live，本地独立乐队演出。',
   },
   {
@@ -95,7 +123,7 @@ const ACTIVITIES = [
     reviewCount: 512,
     address: '越秀区解放北路867号',
     district: '越秀',
-    thumb: IMG('photo-1564398356-451a1fb2a4ec'),
+    thumb: actImg('a5'),
     desc: '「尼罗河的赠礼」古埃及文物数字艺术展。',
   },
   {
@@ -110,7 +138,7 @@ const ACTIVITIES = [
     reviewCount: 67,
     address: '天河区花城广场北区',
     district: '天河',
-    thumb: IMG('photo-1504674900237-0877df9cc836'),
+    thumb: actImg('a6'),
     desc: '网红餐饮快闪，免费试吃名额有限。',
   },
   {
@@ -125,7 +153,7 @@ const ACTIVITIES = [
     reviewCount: 143,
     address: '荔湾区沙面大街',
     district: '荔湾',
-    thumb: IMG('photo-1415201364774-1441a2161a9'),
+    thumb: actImg('a7'),
     desc: '欧式建筑背景下的街头爵士表演。',
   },
   {
@@ -140,7 +168,7 @@ const ACTIVITIES = [
     reviewCount: 88,
     address: '海珠区广州塔西广场',
     district: '海珠',
-    thumb: IMG('photo-1596424327523-4f5156430117'),
+    thumb: actImg('a8'),
     desc: '5km 沿江夜跑，集合后统一出发。',
   },
   {
@@ -155,7 +183,7 @@ const ACTIVITIES = [
     reviewCount: 56,
     address: '越秀区东山口恤孤院路',
     district: '越秀',
-    thumb: IMG('photo-1481627834877-d93f97982474'),
+    thumb: actImg('a9'),
     desc: '独立出版与小众杂志，文艺青年聚集地。',
   },
   {
@@ -170,7 +198,7 @@ const ACTIVITIES = [
     reviewCount: 201,
     address: '海珠区阅江路琶醍啤酒文化创意区',
     district: '海珠',
-    thumb: IMG('photo-1513475382585-d06e58bcb0e3'),
+    thumb: actImg('a10'),
     desc: '精酿品鉴 + 陌生人破冰桌游，需提前预约。',
   },
   {
@@ -185,7 +213,7 @@ const ACTIVITIES = [
     reviewCount: 42,
     address: '天河区正佳广场外广场',
     district: '天河',
-    thumb: IMG('photo-1542770866-97a65da51389'),
+    thumb: actImg('a11'),
     desc: '业余滑手交流赛，围观免费。',
   },
   {
@@ -200,7 +228,7 @@ const ACTIVITIES = [
     reviewCount: 77,
     address: '荔湾区龙津西路荔湾湖公园',
     district: '荔湾',
-    thumb: IMG('photo-1506905925346-21bda4d134df'),
+    thumb: actImg('a12'),
     desc: '长者太极与年轻人冥想体验，免费参与。',
   },
 ];

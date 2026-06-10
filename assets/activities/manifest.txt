@@ -1,0 +1,12 @@
+a1=a1.jpg
+a10=a10.webp
+a11=a11.webp
+a12=a12.jpg
+a2=a2.jpg
+a3=a3.webp
+a4=a4.jpg
+a5=a5.jpg
+a6=a6.jfif
+a7=a7.jpg
+a8=a8.jfif
+a9=a9.webp

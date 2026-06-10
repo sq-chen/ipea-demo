@@ -2,12 +2,28 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
+  <script>
+    (function () {
+      var repo = '/ipea-demo';
+      var path = location.pathname;
+      var base = location.origin;
+      if (path === repo || path.indexOf(repo + '/') === 0) {
+        base += repo + '/';
+      } else if (path.endsWith('/')) {
+        base += path;
+      } else {
+        var slash = path.lastIndexOf('/');
+        base += slash > 0 ? path.slice(0, slash + 1) : '/';
+      }
+      document.write('<base href="' + base + '">');
+    })();
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#FF6B35">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Ipea · 点亮身边的好活动</title>
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="./css/style.css">
 </head>
 <body>
   <div id="app">
@@ -33,7 +49,7 @@
 
         <div class="map-canvas" id="mapCanvas">
           <div class="map-content">
-            <img class="map-img" src="assets/map-guangzhou.png" alt="广州地图" draggable="false" width="926" height="755">
+            <img class="map-img" src="./assets/map-guangzhou.png" alt="广州地图" draggable="false" width="926" height="755">
             <div class="markers-layer" id="markersLayer"></div>
             <div class="user-loc">
               <div class="user-loc-pulse"></div>
@@ -59,12 +75,22 @@
       <div class="recommend-list" id="recommendList"></div>
     </div>
 
-    <!-- 我的占位 -->
-    <div class="panel-placeholder" id="profilePanel">
-      <div class="ph-icon">👤</div>
-      <h2>我的</h2>
-      <p>想去清单、我的活动与评价<br>将在 V4 版本开放</p>
-      <span class="badge">开发中</span>
+    <!-- 我的 -->
+    <div class="profile-panel" id="profilePanel">
+      <div class="profile-header">
+        <div class="profile-avatar" id="profileAvatar">👤</div>
+        <div class="profile-info">
+          <h2 id="profileName">未登录</h2>
+          <p id="profileSub">登录后可同步想去清单与评价</p>
+        </div>
+        <button type="button" class="btn btn-primary btn-sm" id="btnProfileLogin">登录</button>
+      </div>
+      <div class="profile-segments" id="profileSegments">
+        <button type="button" class="profile-seg active" data-seg="want">想去 <span id="profileWantCount">0</span></button>
+        <button type="button" class="profile-seg" data-seg="joined">我的活动 <span id="profileJoinedCount">0</span></button>
+        <button type="button" class="profile-seg" data-seg="reviews">我的评价 <span id="profileReviewCount">0</span></button>
+      </div>
+      <div class="profile-scroll" id="profileScroll"></div>
     </div>
 
     <!-- 筛选面板 -->
@@ -118,6 +144,22 @@
           </div>
           <h3 class="detail-section-title">活动介绍</h3>
           <p class="detail-desc" id="detailDesc"></p>
+          <div class="detail-action-card" id="detailActionCard">
+            <button type="button" class="detail-action-btn" id="btnCheckin">
+              <span class="detail-action-icon">📍</span>
+              <span class="detail-action-text">
+                <strong id="btnCheckinLabel">现场打卡</strong>
+                <small id="btnCheckinHint">到达活动现场后打卡</small>
+              </span>
+            </button>
+            <button type="button" class="detail-action-btn" id="btnReview">
+              <span class="detail-action-icon">✍️</span>
+              <span class="detail-action-text">
+                <strong id="btnReviewLabel">写评价</strong>
+                <small id="btnReviewHint">打卡后可分享体验</small>
+              </span>
+            </button>
+          </div>
           <div class="detail-section-head">
             <h3 class="detail-section-title">用户评价</h3>
             <span class="detail-section-sub" id="detailCommentCount"></span>
@@ -188,9 +230,46 @@
     </nav>
 
     <div class="toast" id="toast"></div>
+
+    <!-- Mock 登录 -->
+    <div class="modal-backdrop" id="loginBackdrop"></div>
+    <div class="login-modal" id="loginModal">
+      <div class="login-logo">I<em>pea</em></div>
+      <p class="login-desc">登录后可收藏活动、现场打卡与写评价</p>
+      <button type="button" class="btn btn-primary login-btn" id="btnMockLogin">微信一键登录（演示）</button>
+      <button type="button" class="btn btn-ghost" id="btnLoginCancel">稍后再说</button>
+    </div>
+
+    <!-- 写评价 -->
+    <div class="modal-backdrop" id="reviewBackdrop"></div>
+    <div class="review-sheet" id="reviewSheet">
+      <div class="sheet-handle"></div>
+      <div class="review-head">
+        <h3>写评价</h3>
+        <button type="button" class="filter-close" id="btnReviewClose">✕</button>
+      </div>
+      <p class="review-act-name" id="reviewActName"></p>
+      <div class="review-stars-pick" id="reviewStarsPick"></div>
+      <textarea class="review-input" id="reviewInput" rows="4" placeholder="分享你的参与体验…"></textarea>
+      <button type="button" class="btn btn-primary" id="btnReviewSubmit">发布评价</button>
+    </div>
+
+    <!-- 分步引导 -->
+    <div class="guide-overlay" id="guideOverlay" hidden>
+      <div class="guide-mask" id="guideMask"></div>
+      <div class="guide-bubble" id="guideBubble">
+        <p class="guide-text" id="guideText"></p>
+        <div class="guide-actions">
+          <button type="button" class="guide-skip" id="btnGuideSkip">跳过</button>
+          <span class="guide-step-num">1 / 6</span>
+          <button type="button" class="btn btn-primary btn-sm" id="btnGuideNext">下一步</button>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <script src="js/data.js"></script>
-  <script src="js/app.js"></script>
+  <script src="./js/data.js"></script>
+  <script src="./js/guide.js"></script>
+  <script src="./js/app.js"></script>
 </body>
 </html>

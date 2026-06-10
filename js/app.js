@@ -21,7 +21,13 @@
     activeTab: 'map',
     filterCategories: null,
     filterDraft: new Set(),
+    user: null,
     wantList: new Set(),
+    checkinList: new Set(),
+    userReviews: new Map(),
+    pendingLoginCallback: null,
+    profileSeg: 'want',
+    reviewRating: 5,
     helpfulMarked: new Set(),
     helpfulExtra: new Map(),
   };
@@ -46,6 +52,47 @@
     toastEl.classList.add('show');
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => toastEl.classList.remove('show'), duration);
+  }
+
+  function closeAllOverlays() {
+    closeSheet();
+    closeClusterPicker();
+    closeFilterPanel();
+    closeLoginModal();
+    closeReviewSheet();
+  }
+
+  function openLoginModal() {
+    $('#loginBackdrop').classList.add('show');
+    $('#loginModal').classList.add('show');
+  }
+
+  function closeLoginModal() {
+    $('#loginBackdrop').classList.remove('show');
+    $('#loginModal').classList.remove('show');
+    state.pendingLoginCallback = null;
+  }
+
+  function mockLogin() {
+    state.user = { name: '小橙', avatar: '🍊' };
+    closeLoginModal();
+    showToast('登录成功，欢迎回来！');
+    if (state.pendingLoginCallback) {
+      const cb = state.pendingLoginCallback;
+      state.pendingLoginCallback = null;
+      cb();
+    }
+    renderProfileHeader();
+    if (state.activeTab === 'profile') renderProfileContent();
+  }
+
+  function requireLogin(onSuccess) {
+    if (state.user) {
+      onSuccess();
+      return;
+    }
+    state.pendingLoginCallback = onSuccess;
+    openLoginModal();
   }
 
   function getActivity(id) {
@@ -216,6 +263,8 @@
     if (!act) return;
     const cat = CATEGORIES[act.category];
     const comments = getComments(id);
+    const userReview = state.userReviews.get(id);
+    const checkedIn = state.checkinList.has(id);
 
     applyThumb($('#detailHero'), act.thumb);
     $('#detailTitle').textContent = act.name;
@@ -228,9 +277,54 @@
     $('#detailTime').textContent = act.time;
     $('#detailAddress').textContent = act.address;
     $('#detailDesc').textContent = act.desc;
-    $('#detailCommentCount').textContent = `共 ${comments.length} 条`;
+    $('#detailCommentCount').textContent = `共 ${comments.length + (userReview ? 1 : 0)} 条`;
 
-    $('#commentList').innerHTML = comments.map((c, idx) => {
+    const checkinBtn = $('#btnCheckin');
+    const reviewBtn = $('#btnReview');
+    if (checkedIn) {
+      checkinBtn.classList.add('done');
+      $('#btnCheckinLabel').textContent = '已打卡';
+      $('#btnCheckinHint').textContent = '感谢到场参与';
+    } else {
+      checkinBtn.classList.remove('done');
+      $('#btnCheckinLabel').textContent = '现场打卡';
+      $('#btnCheckinHint').textContent = '到达活动现场后打卡';
+    }
+
+    if (userReview) {
+      reviewBtn.classList.add('done');
+      reviewBtn.classList.remove('disabled');
+      $('#btnReviewLabel').textContent = '已评价';
+      $('#btnReviewHint').textContent = '可在「我的」查看';
+    } else if (!checkedIn) {
+      reviewBtn.classList.remove('done');
+      reviewBtn.classList.add('disabled');
+      $('#btnReviewLabel').textContent = '写评价';
+      $('#btnReviewHint').textContent = '请先现场打卡';
+    } else {
+      reviewBtn.classList.remove('done', 'disabled');
+      $('#btnReviewLabel').textContent = '写评价';
+      $('#btnReviewHint').textContent = '分享你的参与体验';
+    }
+
+    let commentHtml = '';
+    if (userReview) {
+      commentHtml += `
+      <div class="comment-item mine">
+        <div class="comment-top">
+          <span>
+            <span class="comment-user">${state.user.name}</span>
+            <span class="comment-mine-tag">我的评价</span>
+            <span class="comment-verified">已验证参与</span>
+          </span>
+          <span class="comment-meta">${userReview.time}</span>
+        </div>
+        <div class="comment-stars">${'★'.repeat(userReview.rating)}${'☆'.repeat(5 - userReview.rating)}</div>
+        <p class="comment-text">${userReview.text}</p>
+      </div>`;
+    }
+
+    commentHtml += comments.map((c, idx) => {
       const key = `${id}-${idx}`;
       const marked = state.helpfulMarked.has(key);
       const extra = state.helpfulExtra.get(key) || 0;
@@ -255,6 +349,8 @@
         </div>
       </div>`;
     }).join('');
+
+    $('#commentList').innerHTML = commentHtml;
 
     $$('#commentList .comment-helpful-btn').forEach((btn) => {
       btn.addEventListener('click', () => toggleCommentHelpful(btn.dataset.key));
@@ -382,12 +478,10 @@
 
     el.innerHTML = list.map((act) => {
       const cat = CATEGORIES[act.category];
-      const thumbStyle = String(act.thumb).startsWith('http')
-        ? `background:url('${act.thumb}') center/cover no-repeat;background-color:#E8EAED`
-        : `background:${act.thumb}`;
+      const thumbStyleStr = thumbStyle(act.thumb);
       return `
         <div class="recommend-card" data-id="${act.id}">
-          <div class="recommend-thumb" style="${thumbStyle}"></div>
+          <div class="recommend-thumb" style="${thumbStyleStr}"></div>
           <div class="recommend-info">
             <div class="recommend-name">${act.name}</div>
             <div class="recommend-highlight">${getHighlight(act.id)}</div>
@@ -419,14 +513,200 @@
   }
 
   function toggleWant(id) {
-    if (state.wantList.has(id)) {
-      state.wantList.delete(id);
-      showToast('已取消想去');
-    } else {
-      state.wantList.add(id);
-      showToast('已加入想去清单（演示）');
+    requireLogin(() => {
+      if (state.wantList.has(id)) {
+        state.wantList.delete(id);
+        showToast('已取消想去');
+      } else {
+        state.wantList.add(id);
+        showToast('已加入想去清单');
+      }
+      if (state.detailId === id) renderDetail(id);
+      if (state.activeTab === 'profile') renderProfileContent();
+    });
+  }
+
+  function doCheckin(id) {
+    requireLogin(() => {
+      if (state.checkinList.has(id)) {
+        showToast('你已经打卡过了');
+        return;
+      }
+      state.checkinList.add(id);
+      showToast('打卡成功！欢迎写评价');
+      if (state.detailId === id) renderDetail(id);
+      if (state.activeTab === 'profile') renderProfileContent();
+    });
+  }
+
+  function renderReviewStars() {
+    $('#reviewStarsPick').innerHTML = [1, 2, 3, 4, 5].map((n) =>
+      `<button type="button" class="review-star-btn${n <= state.reviewRating ? ' on' : ''}" data-star="${n}">★</button>`
+    ).join('');
+
+    $$('#reviewStarsPick .review-star-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.reviewRating = Number(btn.dataset.star);
+        renderReviewStars();
+      });
+    });
+  }
+
+  function openReviewSheet(id) {
+    if (!state.user) {
+      requireLogin(() => openReviewSheet(id));
+      return;
     }
+    if (!state.checkinList.has(id)) {
+      showToast('请先现场打卡');
+      return;
+    }
+    if (state.userReviews.has(id)) {
+      showToast('你已经评价过了');
+      return;
+    }
+    const act = getActivity(id);
+    if (!act) return;
+    state.reviewTargetId = id;
+    state.reviewRating = 5;
+    $('#reviewActName').textContent = act.name;
+    $('#reviewInput').value = '';
+    renderReviewStars();
+    $('#reviewBackdrop').classList.add('show');
+    $('#reviewSheet').classList.add('show');
+  }
+
+  function closeReviewSheet() {
+    state.reviewTargetId = null;
+    $('#reviewBackdrop').classList.remove('show');
+    $('#reviewSheet').classList.remove('show');
+  }
+
+  function submitReview() {
+    const id = state.reviewTargetId;
+    if (!id) return;
+    const text = $('#reviewInput').value.trim();
+    if (!text) {
+      showToast('请写几句体验感受');
+      return;
+    }
+
+    const act = getActivity(id);
+    const rating = state.reviewRating;
+    const oldCount = act.reviewCount;
+    act.reviewCount += 1;
+    act.rating = ((act.rating * oldCount) + rating) / act.reviewCount;
+
+    state.userReviews.set(id, {
+      rating,
+      text,
+      time: '刚刚',
+    });
+
+    closeReviewSheet();
+    renderMarkers();
+    renderRecommendList();
     if (state.detailId === id) renderDetail(id);
+    if (state.activeTab === 'profile') renderProfileContent();
+
+    const becameHigh = isHighScore(act);
+    showToast(becameHigh ? '评价已发布！该活动已成为高分活动 ⭐' : '评价已发布，感谢点亮好活动');
+  }
+
+  function renderProfileHeader() {
+    if (state.user) {
+      $('#profileAvatar').textContent = state.user.avatar;
+      $('#profileName').textContent = state.user.name;
+      $('#profileSub').textContent = '演示账号 · 数据仅保存在本页';
+      $('#btnProfileLogin').hidden = true;
+    } else {
+      $('#profileAvatar').textContent = '👤';
+      $('#profileName').textContent = '未登录';
+      $('#profileSub').textContent = '登录后可同步想去清单与评价';
+      $('#btnProfileLogin').hidden = false;
+    }
+    $('#profileWantCount').textContent = state.wantList.size;
+    $('#profileJoinedCount').textContent = state.checkinList.size;
+    $('#profileReviewCount').textContent = state.userReviews.size;
+  }
+
+  function renderProfileContent() {
+    renderProfileHeader();
+    const seg = state.profileSeg;
+    const el = $('#profileScroll');
+
+    if (!state.user) {
+      el.innerHTML = '<div class="profile-empty">登录后查看想去清单、打卡记录与评价</div>';
+      return;
+    }
+
+    if (seg === 'want') {
+      if (state.wantList.size === 0) {
+        el.innerHTML = '<div class="profile-empty">还没有收藏的活动<br>在详情页点「想去」加入清单</div>';
+        return;
+      }
+      el.innerHTML = [...state.wantList].map((id) => {
+        const act = getActivity(id);
+        if (!act) return '';
+        const cat = CATEGORIES[act.category];
+        return `
+          <div class="profile-item" data-id="${id}">
+            <div class="profile-item-thumb" style="${thumbStyle(act.thumb)}"></div>
+            <div class="profile-item-info">
+              <div class="profile-item-name">${act.name}</div>
+              <div class="profile-item-meta">${cat.label} · ${act.time} · ${act.distance}</div>
+            </div>
+          </div>`;
+      }).join('');
+    } else if (seg === 'joined') {
+      if (state.checkinList.size === 0) {
+        el.innerHTML = '<div class="profile-empty">还没有打卡记录<br>到达活动现场后可打卡</div>';
+        return;
+      }
+      el.innerHTML = [...state.checkinList].map((id) => {
+        const act = getActivity(id);
+        if (!act) return '';
+        const reviewed = state.userReviews.has(id);
+        return `
+          <div class="profile-item" data-id="${id}">
+            <div class="profile-item-thumb" style="${thumbStyle(act.thumb)}"></div>
+            <div class="profile-item-info">
+              <div class="profile-item-name">${act.name}</div>
+              <div class="profile-item-meta">已打卡 · ${reviewed ? '已评价' : '待写评价'}</div>
+            </div>
+          </div>`;
+      }).join('');
+    } else {
+      if (state.userReviews.size === 0) {
+        el.innerHTML = '<div class="profile-empty">还没有发布评价<br>打卡后可分享体验</div>';
+        return;
+      }
+      el.innerHTML = [...state.userReviews.entries()].map(([id, review]) => {
+        const act = getActivity(id);
+        if (!act) return '';
+        return `
+          <div class="profile-item" data-id="${id}">
+            <div class="profile-item-thumb" style="${thumbStyle(act.thumb)}"></div>
+            <div class="profile-item-info">
+              <div class="profile-item-name">${act.name}</div>
+              <div class="profile-item-meta">${'★'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)} · ${review.time}</div>
+              <div class="profile-review-text">${review.text}</div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    el.querySelectorAll('.profile-item').forEach((item) => {
+      item.addEventListener('click', () => openDetail(item.dataset.id));
+    });
+  }
+
+  function switchProfileSeg(seg) {
+    state.profileSeg = seg;
+    $$('#profileSegments .profile-seg').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.seg === seg);
+    });
+    renderProfileContent();
   }
 
   function applyMapTransform() {
@@ -642,19 +922,16 @@
 
     if (tab !== 'map') closeSheet();
     if (tab === 'recommend') renderRecommendList();
+    if (tab === 'profile') renderProfileContent();
   }
 
   function initTabs() {
     $$('.tab').forEach((tab) => {
-      tab.addEventListener('click', () => {
-        const id = tab.dataset.tab;
-        if (id === 'profile') {
-          switchTab('profile');
-          showToast('我的页将在 V4 开放');
-        } else {
-          switchTab(id);
-        }
-      });
+      tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+    });
+
+    $$('#profileSegments .profile-seg').forEach((btn) => {
+      btn.addEventListener('click', () => switchProfileSeg(btn.dataset.seg));
     });
   }
 
@@ -683,6 +960,21 @@
     $('#btnWant').addEventListener('click', () => {
       if (state.detailId) toggleWant(state.detailId);
     });
+    $('#btnCheckin').addEventListener('click', () => {
+      if (state.detailId) doCheckin(state.detailId);
+    });
+    $('#btnReview').addEventListener('click', () => {
+      if (state.detailId) openReviewSheet(state.detailId);
+    });
+
+    $('#btnMockLogin').addEventListener('click', mockLogin);
+    $('#btnLoginCancel').addEventListener('click', closeLoginModal);
+    $('#loginBackdrop').addEventListener('click', closeLoginModal);
+    $('#btnProfileLogin').addEventListener('click', openLoginModal);
+
+    $('#btnReviewClose').addEventListener('click', closeReviewSheet);
+    $('#reviewBackdrop').addEventListener('click', closeReviewSheet);
+    $('#btnReviewSubmit').addEventListener('click', submitReview);
 
     $('#btnZoomIn').addEventListener('click', (e) => { e.stopPropagation(); zoomBy(ZOOM.step); });
     $('#btnZoomOut').addEventListener('click', (e) => { e.stopPropagation(); zoomBy(-ZOOM.step); });
@@ -692,11 +984,23 @@
   function init() {
     renderMarkers();
     renderRecommendList();
+    renderProfileHeader();
     initMapGestures();
     initTabs();
     initUI();
     clampToBounds();
     window.addEventListener('resize', clampToBounds);
+
+    if (typeof initGuide === 'function') {
+      initGuide({
+        switchTab,
+        openSheet,
+        openDetail,
+        closeDetail,
+        closeAllOverlays,
+        showToast,
+      });
+    }
   }
 
   if (document.readyState === 'loading') {
