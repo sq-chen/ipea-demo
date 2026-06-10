@@ -1,12 +1,17 @@
 (function () {
   'use strict';
 
+  const ZOOM = { min: 0.85, max: 2.8, step: 0.28, wheel: 0.12 };
+
   const state = {
     selectedId: null,
     mapX: 0,
     mapY: 0,
+    scale: 1,
     dragging: false,
+    pinching: false,
     dragStart: { x: 0, y: 0, mapX: 0, mapY: 0 },
+    pinchStart: { dist: 0, scale: 1, mapX: 0, mapY: 0, cx: 0, cy: 0 },
     activeTab: 'map',
   };
 
@@ -14,6 +19,7 @@
   const $$ = (sel) => document.querySelectorAll(sel);
 
   const mapCanvas = $('#mapCanvas');
+  const mapContent = $('.map-content');
   const markersLayer = $('#markersLayer');
   const sheet = $('#activitySheet');
   const backdrop = $('#sheetBackdrop');
@@ -95,22 +101,87 @@
   }
 
   function applyMapTransform() {
-    mapCanvas.style.transform = `translate(${state.mapX}px, ${state.mapY}px)`;
+    mapCanvas.style.transform = `translate(${state.mapX}px, ${state.mapY}px) scale(${state.scale})`;
   }
 
-  function clampMapPosition() {
+  /** 限制视口不超出地图边界（不出现地图外的空白） */
+  function clampToBounds() {
+    applyMapTransform();
+
     const wrap = $('.map-wrap');
-    const maxX = wrap.clientWidth * 0.2;
-    const maxY = wrap.clientHeight * 0.2;
-    state.mapX = Math.max(-maxX, Math.min(maxX, state.mapX));
-    state.mapY = Math.max(-maxY, Math.min(maxY, state.mapY));
+    const wr = wrap.getBoundingClientRect();
+    const cr = mapContent.getBoundingClientRect();
+
+    let adjustX = 0;
+    let adjustY = 0;
+
+    if (cr.width <= wr.width + 1) {
+      adjustX = (wr.left + wr.width / 2) - (cr.left + cr.width / 2);
+    } else if (cr.left > wr.left + 0.5) {
+      adjustX = wr.left - cr.left;
+    } else if (cr.right < wr.right - 0.5) {
+      adjustX = wr.right - cr.right;
+    }
+
+    if (cr.height <= wr.height + 1) {
+      adjustY = (wr.top + wr.height / 2) - (cr.top + cr.height / 2);
+    } else if (cr.top > wr.top + 0.5) {
+      adjustY = wr.top - cr.top;
+    } else if (cr.bottom < wr.bottom - 0.5) {
+      adjustY = wr.bottom - cr.bottom;
+    }
+
+    if (Math.abs(adjustX) > 0.05 || Math.abs(adjustY) > 0.05) {
+      state.mapX += adjustX;
+      state.mapY += adjustY;
+      applyMapTransform();
+    }
   }
 
-  function initMapDrag() {
+  function clampScale(value) {
+    return Math.max(ZOOM.min, Math.min(ZOOM.max, value));
+  }
+
+  /** 以视口某点为中心缩放（clientX/Y 为屏幕坐标，可省略则取地图中心） */
+  function zoomAt(nextScale, clientX, clientY) {
+    const wrap = $('.map-wrap');
+    const rect = wrap.getBoundingClientRect();
+    const focalX = clientX != null ? clientX - rect.left : rect.width / 2;
+    const focalY = clientY != null ? clientY - rect.top : rect.height / 2;
+
+    const oldScale = state.scale;
+    const newScale = clampScale(nextScale);
+    if (Math.abs(newScale - oldScale) < 0.001) return;
+
+    const ratio = newScale / oldScale;
+    state.mapX = focalX - (focalX - state.mapX) * ratio;
+    state.mapY = focalY - (focalY - state.mapY) * ratio;
+    state.scale = newScale;
+    clampToBounds();
+  }
+
+  function zoomBy(delta, clientX, clientY) {
+    zoomAt(state.scale + delta, clientX, clientY);
+  }
+
+  function pinchDistance(touches) {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.hypot(dx, dy);
+  }
+
+  function pinchCenter(touches, rect) {
+    return {
+      x: (touches[0].clientX + touches[1].clientX) / 2 - rect.left,
+      y: (touches[0].clientY + touches[1].clientY) / 2 - rect.top,
+    };
+  }
+
+  function initMapGestures() {
     const wrap = $('.map-wrap');
 
-    function onStart(clientX, clientY) {
-      if (state.selectedId) return;
+    function onDragStart(clientX, clientY) {
+      if (state.selectedId || state.pinching) return;
       state.dragging = true;
       state.dragStart = {
         x: clientX,
@@ -121,43 +192,101 @@
       mapCanvas.classList.add('dragging');
     }
 
-    function onMove(clientX, clientY) {
-      if (!state.dragging) return;
+    function onDragMove(clientX, clientY) {
+      if (!state.dragging || state.pinching) return;
       state.mapX = state.dragStart.mapX + (clientX - state.dragStart.x);
       state.mapY = state.dragStart.mapY + (clientY - state.dragStart.y);
-      clampMapPosition();
-      applyMapTransform();
+      clampToBounds();
     }
 
-    function onEnd() {
+    function onDragEnd() {
       state.dragging = false;
       mapCanvas.classList.remove('dragging');
+      clampToBounds();
+    }
+
+    function onPinchStart(touches) {
+      state.pinching = true;
+      state.dragging = false;
+      mapCanvas.classList.remove('dragging');
+      const rect = wrap.getBoundingClientRect();
+      const center = pinchCenter(touches, rect);
+      state.pinchStart = {
+        dist: pinchDistance(touches),
+        scale: state.scale,
+        mapX: state.mapX,
+        mapY: state.mapY,
+        cx: center.x,
+        cy: center.y,
+      };
+    }
+
+    function onPinchMove(touches) {
+      if (!state.pinching || touches.length < 2) return;
+      const dist = pinchDistance(touches);
+      const ratio = dist / state.pinchStart.dist;
+      const nextScale = clampScale(state.pinchStart.scale * ratio);
+      const scaleRatio = nextScale / state.pinchStart.scale;
+      state.scale = nextScale;
+      state.mapX = state.pinchStart.cx - (state.pinchStart.cx - state.pinchStart.mapX) * scaleRatio;
+      state.mapY = state.pinchStart.cy - (state.pinchStart.cy - state.pinchStart.mapY) * scaleRatio;
+      clampToBounds();
     }
 
     wrap.addEventListener('mousedown', (e) => {
-      if (e.target.closest('.marker')) return;
-      onStart(e.clientX, e.clientY);
+      if (e.target.closest('.marker') || e.target.closest('.map-controls')) return;
+      onDragStart(e.clientX, e.clientY);
     });
-    window.addEventListener('mousemove', (e) => onMove(e.clientX, e.clientY));
-    window.addEventListener('mouseup', onEnd);
+    window.addEventListener('mousemove', (e) => onDragMove(e.clientX, e.clientY));
+    window.addEventListener('mouseup', onDragEnd);
+
+    wrap.addEventListener('wheel', (e) => {
+      if (state.selectedId) return;
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -ZOOM.wheel : ZOOM.wheel;
+      zoomBy(delta, e.clientX, e.clientY);
+    }, { passive: false });
 
     wrap.addEventListener('touchstart', (e) => {
-      if (e.target.closest('.marker') || e.target.closest('.activity-sheet')) return;
-      const t = e.touches[0];
-      onStart(t.clientX, t.clientY);
+      if (e.target.closest('.activity-sheet')) return;
+      if (e.touches.length === 2) {
+        onPinchStart(e.touches);
+        return;
+      }
+      if (e.target.closest('.marker') || e.target.closest('.map-controls')) return;
+      if (e.touches.length === 1) {
+        onDragStart(e.touches[0].clientX, e.touches[0].clientY);
+      }
     }, { passive: true });
+
     wrap.addEventListener('touchmove', (e) => {
-      if (!state.dragging) return;
-      const t = e.touches[0];
-      onMove(t.clientX, t.clientY);
-    }, { passive: true });
-    wrap.addEventListener('touchend', onEnd);
+      if (e.touches.length === 2 && state.pinching) {
+        e.preventDefault();
+        onPinchMove(e.touches);
+        return;
+      }
+      if (state.dragging && e.touches.length === 1) {
+        onDragMove(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    }, { passive: false });
+
+    wrap.addEventListener('touchend', (e) => {
+      if (e.touches.length < 2) {
+        state.pinching = false;
+      }
+      if (e.touches.length === 0) {
+        onDragEnd();
+      } else if (e.touches.length === 1 && !state.pinching) {
+        onDragStart(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    });
   }
 
   function resetMapView() {
     state.mapX = 0;
     state.mapY = 0;
-    applyMapTransform();
+    state.scale = 1;
+    clampToBounds();
     showToast('已回到当前位置');
   }
 
@@ -206,15 +335,29 @@
       showToast('类别筛选将在 V2 开放');
     });
 
-    $('#btnLocate').addEventListener('click', resetMapView);
+    $('#btnZoomIn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      zoomBy(ZOOM.step);
+    });
+
+    $('#btnZoomOut').addEventListener('click', (e) => {
+      e.stopPropagation();
+      zoomBy(-ZOOM.step);
+    });
+
+    $('#btnLocate').addEventListener('click', (e) => {
+      e.stopPropagation();
+      resetMapView();
+    });
   }
 
   function init() {
     renderMarkers();
-    initMapDrag();
+    initMapGestures();
     initTabs();
     initUI();
-    applyMapTransform();
+    clampToBounds();
+    window.addEventListener('resize', clampToBounds);
   }
 
   if (document.readyState === 'loading') {

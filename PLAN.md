@@ -206,7 +206,7 @@ ipea-demo/
 │   ├── app.js          # 主逻辑
 │   └── guide.js        # 分步引导
 ├── assets/
-│   └── map-guangzhou.* # 静态广州地图底图
+│   └── map-guangzhou.png # 广州地图截图底图
 ├── PLAN.md             # 本计划文档
 └── README.md           # 项目说明与部署指南
 ```
