@@ -115,6 +115,8 @@ body {
   overflow: hidden;
   touch-action: none;
   background: #E8EDF2;
+  -webkit-touch-callout: none;
+  user-select: none;
 }
 
 .map-canvas {
@@ -480,9 +482,10 @@ body {
 }
 
 .sheet-body {
-  padding: 14px 16px 16px;
+  padding: 14px 16px 8px;
   overflow-y: auto;
   max-height: calc(55vh - 20px);
+  -webkit-overflow-scrolling: touch;
 }
 
 .sheet-top {
@@ -574,7 +577,12 @@ body {
 .sheet-actions {
   display: flex;
   gap: 10px;
-  margin-top: 14px;
+  margin-top: 12px;
+  position: sticky;
+  bottom: 0;
+  padding: 10px 0 calc(4px + var(--safe-b));
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0) 0%, var(--card) 28%);
+  z-index: 2;
 }
 
 .btn {
@@ -1810,6 +1818,7 @@ body {
   background: var(--card);
   transform: rotate(45deg);
   box-shadow: -2px -2px 4px rgba(0, 0, 0, 0.04);
+  margin-left: 0;
 }
 
 .guide-arrow-up {
@@ -1822,6 +1831,47 @@ body {
   bottom: -6px;
   left: 50%;
   margin-left: -6px;
+}
+
+.guide-bubble-compact {
+  padding: 10px 12px 10px;
+}
+
+.guide-bubble-compact .guide-text {
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+.guide-bubble-compact .guide-hint {
+  font-size: 11px;
+  margin-bottom: 8px;
+}
+
+@media (max-height: 700px) {
+  .activity-sheet {
+    max-height: 50vh;
+  }
+
+  .sheet-body {
+    max-height: calc(50vh - 16px);
+  }
+
+  .sheet-thumb {
+    width: 60px;
+    height: 60px;
+  }
+
+  .sheet-title {
+    font-size: 15px;
+  }
+
+  .guide-bubble {
+    padding: 10px 12px 10px;
+  }
+
+  .guide-text {
+    font-size: 13px;
+  }
 }
 
 .guide-tag {

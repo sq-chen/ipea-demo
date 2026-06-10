@@ -36,17 +36,21 @@
       },
       {
         tag: '查看详情',
-        text: '点击「查看详情」，进入活动完整页面。',
-        target: '#btnDetail',
+        text: '点击底部「查看详情」，进入活动完整页面。',
+        target: () => document.querySelector('#activitySheet .sheet-actions') || document.querySelector('#btnDetail'),
         placement: 'top',
+        bubbleDock: 'top',
         waitFor: 'detail-open',
         keepSheet: true,
+        delayPosition: 380,
+        scrollTarget: false,
       },
       {
         tag: '底部 Tab',
         text: '点「推荐」浏览列表，或「我的」查看想去与评价。',
         target: '.tab[data-tab="recommend"]',
         placement: 'top',
+        bubbleDock: 'top',
         waitFor: 'tab-recommend',
         onEnter(api) {
           api.closeDetail();
@@ -104,17 +108,33 @@
       return document.querySelector(step.target);
     }
 
+    function rectsOverlap(a, b, gap = 6) {
+      return !(a.right + gap < b.left || a.left - gap > b.right
+        || a.bottom + gap < b.top || a.top - gap > b.bottom);
+    }
+
     function positionStep(step) {
       const app = document.getElementById('app');
       const target = resolveTarget(step);
+      const header = document.querySelector('.header');
+      const headerH = header ? header.offsetHeight : 52;
+
       if (!app || !target) {
         spotlight.hidden = true;
-        bubble.style.left = '16px';
-        bubble.style.right = '16px';
-        bubble.style.top = 'auto';
-        bubble.style.bottom = 'calc(var(--tabbar-h) + var(--safe-b) + 24px)';
-        if (arrow) arrow.className = 'guide-arrow';
+        bubble.style.left = '12px';
+        bubble.style.right = '12px';
+        bubble.style.top = `${headerH + 12}px`;
+        bubble.style.bottom = 'auto';
+        if (arrow) arrow.hidden = true;
         return;
+      }
+
+      if (step.scrollTarget !== false && target.scrollIntoView) {
+        try {
+          target.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'instant' });
+        } catch (_) {
+          target.scrollIntoView(false);
+        }
       }
 
       const appRect = app.getBoundingClientRect();
@@ -137,49 +157,82 @@
       bubble.style.right = 'auto';
       bubble.style.top = 'auto';
       bubble.style.bottom = 'auto';
-      bubble.style.maxWidth = `${Math.min(280, appRect.width - 32)}px`;
+      bubble.style.maxWidth = `${Math.min(300, appRect.width - 24)}px`;
+      bubble.classList.toggle('guide-bubble-compact', appRect.height < 720);
 
-      const margin = 14;
-      const bubbleRect = bubble.getBoundingClientRect();
-      const bubbleW = bubbleRect.width || 260;
-      const bubbleH = bubbleRect.height || 120;
+      const margin = 12;
+      let bubbleW = bubble.offsetWidth || 240;
+      let bubbleH = bubble.offsetHeight || 100;
       const cx = x + w / 2;
-      const cy = y + h / 2;
 
-      let placement = step.placement || 'bottom';
+      const targetBox = { left: x, top: y, right: x + w, bottom: y + h };
       const spaceBelow = appRect.height - (y + h);
       const spaceAbove = y;
-      if (placement === 'bottom' && spaceBelow < bubbleH + 40 && spaceAbove > spaceBelow) {
-        placement = 'top';
-      }
-      if (placement === 'top' && spaceAbove < bubbleH + 40 && spaceBelow > spaceAbove) {
-        placement = 'bottom';
-      }
+      const targetInLowerHalf = (y + h / 2) > appRect.height * 0.42;
+      const dockTop = step.bubbleDock === 'top' || targetInLowerHalf;
 
       let bx;
       let by;
-      if (placement === 'top') {
-        by = y - bubbleH - margin;
-        bx = cx - bubbleW / 2;
-        if (arrow) arrow.className = 'guide-arrow guide-arrow-down';
+      let arrowDir = 'down';
+
+      if (dockTop) {
+        by = headerH + 10;
+        bx = Math.max(12, Math.min(appRect.width - bubbleW - 12, cx - bubbleW / 2));
+        arrowDir = 'down';
       } else {
-        by = y + h + margin;
+        let placement = step.placement || 'bottom';
+        if (placement === 'bottom' && spaceBelow < bubbleH + 36 && spaceAbove > spaceBelow) {
+          placement = 'top';
+        }
+        if (placement === 'top' && spaceAbove < bubbleH + 36 && spaceBelow > spaceAbove) {
+          placement = 'bottom';
+        }
+        if (placement === 'top') {
+          by = y - bubbleH - margin;
+          arrowDir = 'down';
+        } else {
+          by = y + h + margin;
+          arrowDir = 'up';
+        }
         bx = cx - bubbleW / 2;
-        if (arrow) arrow.className = 'guide-arrow guide-arrow-up';
       }
 
       bx = Math.max(12, Math.min(appRect.width - bubbleW - 12, bx));
-      by = Math.max(12, Math.min(appRect.height - bubbleH - 12, by));
+      by = Math.max(headerH + 8, Math.min(appRect.height - bubbleH - 8, by));
+
+      bubbleW = bubble.offsetWidth || bubbleW;
+      bubbleH = bubble.offsetHeight || bubbleH;
+      const bubbleBox = { left: bx, top: by, right: bx + bubbleW, bottom: by + bubbleH };
+
+      if (rectsOverlap(bubbleBox, targetBox)) {
+        by = headerH + 10;
+        bx = Math.max(12, Math.min(appRect.width - bubbleW - 12, cx - bubbleW / 2));
+        arrowDir = 'down';
+      }
 
       bubble.style.left = `${bx}px`;
       bubble.style.top = `${by}px`;
+
+      if (arrow) {
+        arrow.hidden = false;
+        arrow.className = arrowDir === 'down'
+          ? 'guide-arrow guide-arrow-down'
+          : 'guide-arrow guide-arrow-up';
+        const arrowX = Math.max(18, Math.min(bubbleW - 18, cx - bx));
+        arrow.style.left = `${arrowX}px`;
+      }
     }
 
     function schedulePosition(step) {
-      requestAnimationFrame(() => {
+      const run = () => {
         positionStep(step);
         requestAnimationFrame(() => positionStep(step));
-      });
+      };
+      if (step.delayPosition) {
+        setTimeout(run, step.delayPosition);
+      } else {
+        requestAnimationFrame(run);
+      }
     }
 
     function updateStepUI(step) {

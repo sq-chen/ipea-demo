@@ -4,7 +4,10 @@
   const ZOOM = { min: 0.85, max: 2.8, step: 0.28, wheel: 0.12 };
   const CATEGORY_KEYS = Object.keys(CATEGORIES);
   const MARKER_HIT_RADIUS = 5.5;
-  const TAP_MOVE_THRESHOLD = 8;
+  const IS_TOUCH_DEVICE = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+  /** 超过此距离才算拖动；真机手指抖动大，阈值需更高 */
+  const TAP_MOVE_THRESHOLD = IS_TOUCH_DEVICE ? 18 : 8;
+  const TAP_SLOP = IS_TOUCH_DEVICE ? 14 : 8;
 
   const state = {
     selectedId: null,
@@ -1030,6 +1033,8 @@
     const wrap = $('.map-wrap');
     let touchActive = false;
     let touchIdleTimer = null;
+    let touchTapPending = false;
+    let touchStartPoint = null;
 
     function markTouchActive() {
       touchActive = true;
@@ -1039,19 +1044,21 @@
       }, 450);
     }
 
-    function tryMarkerTap(clientX, clientY) {
-      if (state.mapDidMove) return;
+    function tryMarkerTap(clientX, clientY, ignoreMove = false) {
+      if (!ignoreMove && state.mapDidMove) return;
       const nearby = getMarkersNearPoint(clientX, clientY);
       if (nearby.length === 0) return;
       handleMarkerTap(clientX, clientY);
     }
 
     function tapMoved(clientX, clientY) {
-      return Math.hypot(clientX - state.dragStart.x, clientY - state.dragStart.y) > TAP_MOVE_THRESHOLD;
+      if (!touchStartPoint) return false;
+      return Math.hypot(clientX - touchStartPoint.x, clientY - touchStartPoint.y) > TAP_MOVE_THRESHOLD;
     }
 
     function onDragStart(clientX, clientY) {
       if (state.selectedId || state.pinching || state.detailId) return;
+      touchTapPending = false;
       state.dragging = true;
       state.mapDidMove = false;
       state.dragPointer = { x: clientX, y: clientY };
@@ -1061,7 +1068,7 @@
 
     function onDragMove(clientX, clientY) {
       if (!state.dragging || state.pinching) return;
-      if (Math.hypot(clientX - state.dragPointer.x, clientY - state.dragPointer.y) > TAP_MOVE_THRESHOLD) {
+      if (Math.hypot(clientX - state.dragPointer.x, clientY - state.dragPointer.y) > TAP_SLOP) {
         state.mapDidMove = true;
       }
       state.mapX = state.dragStart.mapX + (clientX - state.dragStart.x);
@@ -1071,11 +1078,23 @@
 
     function onDragEnd() {
       state.dragging = false;
+      touchTapPending = false;
+      touchStartPoint = null;
       mapCanvas.classList.remove('dragging');
       clampToBounds();
     }
 
+    function beginTouchTap(clientX, clientY) {
+      if (state.selectedId || state.pinching || state.detailId) return;
+      touchTapPending = true;
+      touchStartPoint = { x: clientX, y: clientY, time: Date.now() };
+      state.mapDidMove = false;
+      state.dragStart = { x: clientX, y: clientY, mapX: state.mapX, mapY: state.mapY };
+    }
+
     function onPinchStart(touches) {
+      touchTapPending = false;
+      touchStartPoint = null;
       state.pinching = true;
       state.dragging = false;
       mapCanvas.classList.remove('dragging');
@@ -1130,7 +1149,7 @@
         return;
       }
       if (e.target.closest('.map-controls')) return;
-      if (e.touches.length === 1) onDragStart(e.touches[0].clientX, e.touches[0].clientY);
+      if (e.touches.length === 1) beginTouchTap(e.touches[0].clientX, e.touches[0].clientY);
     }, { passive: true });
 
     wrap.addEventListener('click', (e) => {
@@ -1146,7 +1165,18 @@
         onPinchMove(e.touches);
         return;
       }
+      if (touchTapPending && e.touches.length === 1) {
+        const t = e.touches[0];
+        const dist = Math.hypot(t.clientX - touchStartPoint.x, t.clientY - touchStartPoint.y);
+        if (dist > TAP_SLOP) {
+          onDragStart(touchStartPoint.x, touchStartPoint.y);
+          onDragMove(t.clientX, t.clientY);
+          e.preventDefault();
+        }
+        return;
+      }
       if (state.dragging && e.touches.length === 1) {
+        e.preventDefault();
         onDragMove(e.touches[0].clientX, e.touches[0].clientY);
       }
     }, { passive: false });
@@ -1155,18 +1185,29 @@
       markTouchActive();
       if (e.touches.length < 2) state.pinching = false;
       if (e.touches.length === 0) {
-        if (!state.pinching && e.changedTouches.length === 1) {
+        if (touchTapPending && !state.pinching && e.changedTouches.length === 1) {
           const t = e.changedTouches[0];
-          const moved = state.mapDidMove || tapMoved(t.clientX, t.clientY);
-          if (!moved && !e.target.closest('.map-controls') && !e.target.closest('.filter-bar')) {
-            suppressMarkerClickUntil = Date.now() + 400;
-            tryMarkerTap(t.clientX, t.clientY);
+          touchTapPending = false;
+          if (!e.target.closest('.map-controls') && !e.target.closest('.filter-bar')) {
+            const dt = Date.now() - touchStartPoint.time;
+            if (dt < 450 && !tapMoved(t.clientX, t.clientY)) {
+              suppressMarkerClickUntil = Date.now() + 400;
+              tryMarkerTap(t.clientX, t.clientY, true);
+            }
           }
+          touchStartPoint = null;
+        } else if (state.dragging) {
+          onDragEnd();
         }
-        onDragEnd();
       } else if (e.touches.length === 1 && !state.pinching) {
-        onDragStart(e.touches[0].clientX, e.touches[0].clientY);
+        beginTouchTap(e.touches[0].clientX, e.touches[0].clientY);
       }
+    }, { passive: true });
+
+    wrap.addEventListener('touchcancel', () => {
+      touchTapPending = false;
+      touchStartPoint = null;
+      onDragEnd();
     }, { passive: true });
   }
 
