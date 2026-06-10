@@ -1771,6 +1771,7 @@ body {
 
 .guide-overlay.active {
   pointer-events: none;
+  z-index: 270;
 }
 
 .guide-overlay[hidden] {
@@ -1955,18 +1956,12 @@ body {
   pointer-events: auto;
 }
 
-#app.guide-elevate-sheet .activity-sheet.show {
-  z-index: 260;
+#app.guide-confirming .guide-overlay {
+  z-index: 270;
 }
 
-#app.guide-elevate-sheet .sheet-backdrop.show {
-  z-index: 255;
-  pointer-events: none;
-}
-
-#app.guide-elevate-header .header {
-  z-index: 260;
-  position: relative;
+#app.guide-confirming .guide-bubble {
+  z-index: 3;
 }
 
 .guide-prompt-text {

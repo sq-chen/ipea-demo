@@ -12,13 +12,23 @@
         target: () => document.querySelector('.marker.high') || document.querySelector('.marker'),
         placement: 'bottom',
         waitFor: 'marker-tap',
+        confirmAfter: true,
+        resultTarget: '#activitySheet',
+        resultPlacement: 'top',
+        confirmText: '这是活动简介卡片，可查看评分与活动信息。',
       },
       {
         tag: '筛选',
         text: '点右上角「筛选」，可按类别、时间、距离等查找活动。',
         target: '#btnFilter',
         placement: 'bottom',
+        anchorBubble: true,
+        bubbleAlign: 'end',
         waitFor: 'filter-open',
+        confirmAfter: true,
+        resultTarget: '#filterPanel',
+        resultPlacement: 'top',
+        confirmText: '筛选面板已打开，可按类别、时间、距离等条件查找。',
         onEnter(api) {
           api.closeSheet();
           api.closeDetail();
@@ -37,12 +47,14 @@
       {
         tag: '查看详情',
         text: '点击底部「查看详情」，进入活动完整页面。',
-        target: () => document.querySelector('#activitySheet .sheet-actions') || document.querySelector('#btnDetail'),
+        target: '#btnDetail',
+        spotlightTarget: '#activitySheet',
         placement: 'top',
-        bubbleDock: 'top',
+        anchorBubble: true,
         waitFor: 'detail-open',
         keepSheet: true,
-        delayPosition: 380,
+        delayPosition: 420,
+        repositionAgain: 220,
         scrollTarget: false,
       },
       {
@@ -90,23 +102,29 @@
     let index = 0;
     let promptEl = null;
     let active = false;
+    let confirming = false;
+    let confirmAdvanceLock = false;
+    let confirmListenersBound = false;
 
     function finish() {
       localStorage.setItem(STORAGE_KEY, '1');
       active = false;
+      exitConfirmMode();
       overlay.hidden = true;
       overlay.classList.remove('active');
       spotlight.hidden = true;
       spotlight.classList.remove('pulse');
       if (promptEl) promptEl.remove();
-      document.getElementById('app')?.classList.remove('guide-elevate-sheet', 'guide-elevate-header');
+      document.getElementById('app')?.classList.remove('guide-confirming');
       api.closeGuideLayers();
     }
 
-    function resolveTarget(step) {
-      if (!step.target) return null;
-      if (typeof step.target === 'function') return step.target();
-      return document.querySelector(step.target);
+    function resolveTarget(step, role = 'target') {
+      const key = role === 'spotlight' ? 'spotlightTarget' : 'target';
+      const raw = step[key] || step.target;
+      if (!raw) return null;
+      if (typeof raw === 'function') return raw();
+      return document.querySelector(raw);
     }
 
     function rectsOverlap(a, b, gap = 16) {
@@ -116,11 +134,12 @@
 
     function positionStep(step) {
       const app = document.getElementById('app');
-      const target = resolveTarget(step);
+      const spotlightEl = resolveTarget(step, 'spotlight');
+      const bubbleTarget = resolveTarget(step, 'target');
       const header = document.querySelector('.header');
       const headerH = header ? header.offsetHeight : 52;
 
-      if (!app || !target) {
+      if (!app || !bubbleTarget) {
         spotlight.hidden = true;
         bubble.style.left = '12px';
         bubble.style.right = '12px';
@@ -130,21 +149,33 @@
         return;
       }
 
-      if (step.scrollTarget !== false && target.scrollIntoView) {
+      if (step.scrollTarget !== false && bubbleTarget.scrollIntoView) {
         try {
-          target.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'instant' });
+          bubbleTarget.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'instant' });
         } catch (_) {
-          target.scrollIntoView(false);
+          bubbleTarget.scrollIntoView(false);
         }
       }
 
+      if (bubbleTarget.id === 'btnDetail') {
+        const sheetBody = document.querySelector('#activitySheet .sheet-body');
+        if (sheetBody) sheetBody.scrollTop = sheetBody.scrollHeight;
+      }
+
       const appRect = app.getBoundingClientRect();
-      const rect = target.getBoundingClientRect();
-      const pad = 8;
-      const x = Math.max(4, rect.left - appRect.left - pad);
-      const y = Math.max(4, rect.top - appRect.top - pad);
-      const w = Math.min(appRect.width - x - 4, rect.width + pad * 2);
-      const h = Math.min(appRect.height - y - 4, rect.height + pad * 2);
+
+      function placeRect(el) {
+        const rect = el.getBoundingClientRect();
+        const pad = 8;
+        const x = Math.max(4, rect.left - appRect.left - pad);
+        const y = Math.max(4, rect.top - appRect.top - pad);
+        const w = Math.min(appRect.width - x - 4, rect.width + pad * 2);
+        const h = Math.min(appRect.height - y - 4, rect.height + pad * 2);
+        return { x, y, w, h, rect };
+      }
+
+      const spotBox = placeRect(spotlightEl || bubbleTarget);
+      const { x, y, w, h } = spotBox;
 
       spotlight.hidden = false;
       spotlight.classList.add('pulse');
@@ -152,7 +183,8 @@
       spotlight.style.top = `${y}px`;
       spotlight.style.width = `${w}px`;
       spotlight.style.height = `${h}px`;
-      spotlight.style.borderRadius = target.classList.contains('marker') ? '50%' : '12px';
+      const spotRef = spotlightEl || bubbleTarget;
+      spotlight.style.borderRadius = spotRef.classList.contains('marker') ? '50%' : '12px';
 
       bubble.style.left = 'auto';
       bubble.style.right = 'auto';
@@ -161,16 +193,22 @@
       bubble.style.maxWidth = `${Math.min(300, appRect.width - 24)}px`;
       bubble.classList.toggle('guide-bubble-compact', appRect.height < 720);
 
+      const bubbleBox = placeRect(bubbleTarget);
+      const bx0 = bubbleBox.x;
+      const by0 = bubbleBox.y;
+      const bw0 = bubbleBox.w;
+      const bh0 = bubbleBox.h;
       const margin = 12;
       let bubbleW = bubble.offsetWidth || 240;
       let bubbleH = bubble.offsetHeight || 100;
-      const cx = x + w / 2;
+      const cx = bx0 + bw0 / 2;
 
-      const targetBox = { left: x, top: y, right: x + w, bottom: y + h };
-      const spaceBelow = appRect.height - (y + h);
-      const spaceAbove = y;
-      const targetInLowerHalf = (y + h / 2) > appRect.height * 0.42;
-      const dockTop = step.bubbleDock === 'top' || targetInLowerHalf;
+      const targetBox = { left: bx0, top: by0, right: bx0 + bw0, bottom: by0 + bh0 };
+      const spaceBelow = appRect.height - (by0 + bh0);
+      const spaceAbove = by0;
+      const targetInLowerHalf = (by0 + bh0 / 2) > appRect.height * 0.42;
+      const dockTop = step.bubbleDock === 'top'
+        || (!step.anchorBubble && targetInLowerHalf);
 
       let bx;
       let by;
@@ -189,33 +227,45 @@
           placement = 'bottom';
         }
         if (placement === 'top') {
-          by = y - bubbleH - margin;
+          by = by0 - bubbleH - margin;
           arrowDir = 'down';
         } else {
-          by = y + h + margin;
+          by = by0 + bh0 + margin;
           arrowDir = 'up';
         }
-        bx = cx - bubbleW / 2;
+        if (step.bubbleAlign === 'end') {
+          bx = bx0 + bw0 - bubbleW;
+        } else if (step.bubbleAlign === 'start') {
+          bx = bx0;
+        } else {
+          bx = cx - bubbleW / 2;
+        }
       }
 
       bx = Math.max(12, Math.min(appRect.width - bubbleW - 12, bx));
-      by = Math.max(headerH + 8, Math.min(appRect.height - bubbleH - 8, by));
+      if (dockTop) {
+        by = Math.max(headerH + 8, Math.min(appRect.height - bubbleH - 8, by));
+      } else if (step.placement === 'top' || (step.placement !== 'bottom' && by < headerH + 8)) {
+        by = Math.max(headerH + 8, by);
+      } else {
+        by = Math.max(headerH + 8, Math.min(appRect.height - bubbleH - 8, by));
+      }
 
       bubbleW = bubble.offsetWidth || bubbleW;
       bubbleH = bubble.offsetHeight || bubbleH;
-      const bubbleBox = { left: bx, top: by, right: bx + bubbleW, bottom: by + bubbleH };
+      const bubbleRect = { left: bx, top: by, right: bx + bubbleW, bottom: by + bubbleH };
 
-      if (rectsOverlap(bubbleBox, targetBox)) {
-        if (spaceBelow >= bubbleH + 36 && !dockTop) {
-          by = y + h + margin;
+      if (rectsOverlap(bubbleRect, targetBox)) {
+        if (spaceBelow >= bubbleH + 36 && !dockTop && step.placement !== 'top') {
+          by = by0 + bh0 + margin;
           arrowDir = 'up';
         } else if (spaceAbove >= bubbleH + 36) {
-          by = y - bubbleH - margin;
+          by = by0 - bubbleH - margin;
           arrowDir = 'down';
-        } else {
-          by = headerH + 10;
-          bx = Math.max(12, Math.min(appRect.width - bubbleW - 12, cx - bubbleW / 2));
-          arrowDir = 'down';
+        } else if (step.bubbleAlign === 'end') {
+          bx = Math.max(12, bx0 + bw0 - bubbleW);
+          by = by0 + bh0 + margin;
+          arrowDir = 'up';
         }
       }
 
@@ -239,16 +289,32 @@
       };
       if (step.delayPosition) {
         setTimeout(run, step.delayPosition);
+        if (step.repositionAgain) {
+          setTimeout(run, step.delayPosition + step.repositionAgain);
+        }
       } else {
         requestAnimationFrame(run);
       }
     }
 
-    function updateStepUI(step) {
+    function updateStepUI(step, mode = 'action') {
       if (tagEl) tagEl.textContent = step.tag;
-      textEl.textContent = step.text;
       if (stepNumEl) stepNumEl.textContent = `${index + 1} / ${steps.length}`;
 
+      if (mode === 'confirm') {
+        if (textEl) textEl.textContent = step.confirmText || '很好！你已经打开了对应界面。';
+        if (hintEl) {
+          hintEl.hidden = false;
+          hintEl.textContent = '👆 查看完毕后，点击屏幕任意位置继续';
+        }
+        if (btnNext) {
+          btnNext.hidden = false;
+          btnNext.textContent = '继续';
+        }
+        return;
+      }
+
+      if (textEl) textEl.textContent = step.text;
       const interactive = !!step.waitFor;
       if (hintEl) hintEl.hidden = !interactive;
       if (btnNext) btnNext.hidden = interactive;
@@ -260,9 +326,70 @@
       }
     }
 
+    function buildPositionStep(step, mode = 'action') {
+      if (mode !== 'confirm' || !step.resultTarget) return step;
+      return {
+        ...step,
+        target: step.resultTarget,
+        spotlightTarget: step.resultTarget,
+        placement: step.resultPlacement || 'top',
+        anchorBubble: true,
+        bubbleDock: undefined,
+        bubbleAlign: undefined,
+        delayPosition: 320,
+      };
+    }
+
+    function removeConfirmListeners() {
+      if (!confirmListenersBound) return;
+      document.removeEventListener('click', handleConfirmPointer, true);
+      document.removeEventListener('touchend', handleConfirmPointer, true);
+      confirmListenersBound = false;
+    }
+
+    function handleConfirmPointer(e) {
+      if (!confirming || confirmAdvanceLock) return;
+      if (e.target.closest('#guideBubble')) return;
+      if (e.type === 'click') e.preventDefault();
+      advanceFromConfirm();
+    }
+
+    function exitConfirmMode(removeListeners = true) {
+      confirming = false;
+      confirmAdvanceLock = false;
+      if (removeListeners) removeConfirmListeners();
+      document.getElementById('app')?.classList.remove('guide-confirming');
+    }
+
+    function enterConfirmMode() {
+      const step = steps[index];
+      confirming = true;
+      confirmAdvanceLock = false;
+
+      document.getElementById('app')?.classList.add('guide-confirming');
+
+      updateStepUI(step, 'confirm');
+      schedulePosition(buildPositionStep(step, 'confirm'));
+
+      if (!confirmListenersBound) {
+        document.addEventListener('click', handleConfirmPointer, true);
+        document.addEventListener('touchend', handleConfirmPointer, true);
+        confirmListenersBound = true;
+      }
+    }
+
+    function advanceFromConfirm() {
+      if (!confirming || confirmAdvanceLock) return;
+      confirmAdvanceLock = true;
+      const next = index + 1;
+      exitConfirmMode();
+      showStep(next);
+    }
+
     function showStep(i) {
       index = i;
       if (promptEl) promptEl.remove();
+      exitConfirmMode();
 
       if (index >= steps.length) {
         finish();
@@ -285,22 +412,18 @@
       overlay.hidden = false;
       overlay.classList.add('active');
 
-      const appEl = document.getElementById('app');
-      if (appEl) {
-        appEl.classList.remove('guide-elevate-sheet', 'guide-elevate-header');
-        if (step.keepSheet) appEl.classList.add('guide-elevate-sheet');
-        if (step.target === '#btnFilter') appEl.classList.add('guide-elevate-header');
-      }
-
       schedulePosition(step);
     }
 
     function onUserAction(event) {
-      if (!active || index >= steps.length) return;
+      if (!active || confirming || index >= steps.length) return;
       const step = steps[index];
       if (step.waitFor !== event) return;
-      // 让用户先看到点击结果（活动卡片/筛选面板等），再进入下一步
-      setTimeout(() => showStep(index + 1), 450);
+      if (step.confirmAfter) {
+        enterConfirmMode();
+        return;
+      }
+      showStep(index + 1);
     }
 
     function showWelcomePrompt() {
@@ -331,6 +454,10 @@
     if (btnNext) {
       btnNext.addEventListener('click', (e) => {
         e.stopPropagation();
+        if (confirming) {
+          advanceFromConfirm();
+          return;
+        }
         showStep(index + 1);
       });
     }
@@ -341,7 +468,12 @@
     });
 
     window.addEventListener('resize', debounce(() => {
-      if (active && index < steps.length) schedulePosition(steps[index]);
+      if (!active || index >= steps.length) return;
+      if (confirming) {
+        schedulePosition(buildPositionStep(steps[index], 'confirm'));
+      } else {
+        schedulePosition(steps[index]);
+      }
     }, IS_COARSE ? 200 : 120), { passive: true });
 
     if (IS_COARSE) {
