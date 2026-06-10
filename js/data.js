@@ -1,17 +1,8 @@
-/** 活动配图文件名（由 scripts/import_pic.py 从 pic 文件夹导入） */
+/** 活动配图（统一 JPEG，兼容 GitHub Pages 与各浏览器） */
 const ACTIVITY_IMAGE_FILES = {
-  a1: 'a1.jpg',
-  a2: 'a2.jpg',
-  a3: 'a3.webp',
-  a4: 'a4.jpg',
-  a5: 'a5.jpg',
-  a6: 'a6.jfif',
-  a7: 'a7.jpg',
-  a8: 'a8.jfif',
-  a9: 'a9.webp',
-  a10: 'a10.webp',
-  a11: 'a11.webp',
-  a12: 'a12.jpg',
+  a1: 'a1.jpg', a2: 'a2.jpg', a3: 'a3.jpg', a4: 'a4.jpg',
+  a5: 'a5.jpg', a6: 'a6.jpg', a7: 'a7.jpg', a8: 'a8.jpg',
+  a9: 'a9.jpg', a10: 'a10.jpg', a11: 'a11.jpg', a12: 'a12.jpg',
 };
 
 /** 本地活动配图（随仓库一起部署，不依赖外网） */
