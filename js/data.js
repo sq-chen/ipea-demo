@@ -7,13 +7,13 @@ const CATEGORIES = {
   social:     { icon: '💬', label: '社交', color: '#EC4899' },
 };
 
-/** 广州 mock 活动（x/y 为地图截图上的百分比位置） */
+/** 广州 mock 活动（x/y 为地图截图上的百分比位置，基于 926×755 新底图） */
 const ACTIVITIES = [
   {
     id: 'a1',
     name: '广美毕业作品展',
     category: 'exhibition',
-    x: 63, y: 58,
+    x: 72, y: 50,
     distance: '8.2km',
     time: '进行中',
     status: 'ongoing',
@@ -28,7 +28,7 @@ const ACTIVITIES = [
     id: 'a2',
     name: '永庆坊周末创意市集',
     category: 'food',
-    x: 36, y: 40,
+    x: 27, y: 34,
     distance: '1.8km',
     time: '6月14日 10:00',
     status: 'upcoming',
@@ -43,7 +43,7 @@ const ACTIVITIES = [
     id: 'a3',
     name: '二沙岛周末飞盘局',
     category: 'sport',
-    x: 50, y: 36,
+    x: 48, y: 36,
     distance: '2.5km',
     time: '进行中',
     status: 'ongoing',
@@ -58,7 +58,7 @@ const ACTIVITIES = [
     id: 'a4',
     name: '太古仓 Live 音乐夜',
     category: 'music',
-    x: 41, y: 46,
+    x: 35, y: 48,
     distance: '2.1km',
     time: '6月14日 19:30',
     status: 'upcoming',
@@ -73,7 +73,7 @@ const ACTIVITIES = [
     id: 'a5',
     name: '南越王博物院特展',
     category: 'exhibition',
-    x: 46, y: 30,
+    x: 38, y: 24,
     distance: '1.2km',
     time: '进行中',
     status: 'ongoing',
@@ -88,7 +88,7 @@ const ACTIVITIES = [
     id: 'a6',
     name: '珠江新城美食快闪',
     category: 'food',
-    x: 57, y: 33,
+    x: 56, y: 30,
     distance: '0.8km',
     time: '6月15日 11:00',
     status: 'upcoming',
@@ -103,7 +103,7 @@ const ACTIVITIES = [
     id: 'a7',
     name: '沙面街头爵士',
     category: 'music',
-    x: 39, y: 44,
+    x: 33, y: 43,
     distance: '2.8km',
     time: '6月13日 20:00',
     status: 'upcoming',
@@ -118,7 +118,7 @@ const ACTIVITIES = [
     id: 'a8',
     name: '广州塔夜跑团',
     category: 'sport',
-    x: 52, y: 42,
+    x: 51, y: 47,
     distance: '3.5km',
     time: '6月14日 20:00',
     status: 'upcoming',
@@ -133,7 +133,7 @@ const ACTIVITIES = [
     id: 'a9',
     name: '东山口独立书展',
     category: 'exhibition',
-    x: 53, y: 32,
+    x: 52, y: 22,
     distance: '1.5km',
     time: '进行中',
     status: 'ongoing',
@@ -148,7 +148,7 @@ const ACTIVITIES = [
     id: 'a10',
     name: '琶醍啤酒社交夜',
     category: 'social',
-    x: 47, y: 49,
+    x: 46, y: 52,
     distance: '3.8km',
     time: '6月14日 18:00',
     status: 'upcoming',
@@ -163,7 +163,7 @@ const ACTIVITIES = [
     id: 'a11',
     name: '天河路街头滑板赛',
     category: 'sport',
-    x: 61, y: 34,
+    x: 60, y: 24,
     distance: '1.0km',
     time: '6月15日 15:00',
     status: 'upcoming',
@@ -178,7 +178,7 @@ const ACTIVITIES = [
     id: 'a12',
     name: '荔湾湖太极晨练社',
     category: 'social',
-    x: 34, y: 43,
+    x: 25, y: 41,
     distance: '2.0km',
     time: '进行中',
     status: 'ongoing',
@@ -190,6 +190,162 @@ const ACTIVITIES = [
     desc: '长者太极与年轻人冥想体验，免费参与。',
   },
 ];
+
+/** 主办方 */
+const ORGANIZERS = {
+  a1: '广州美术学院',
+  a2: '永庆坊文化街区',
+  a3: '二沙岛飞盘社',
+  a4: '太古仓码头',
+  a5: '南越王博物院',
+  a6: '花城广场商圈',
+  a7: '沙面音乐联盟',
+  a8: '广州塔跑团',
+  a9: '东山口独立书店',
+  a10: '琶醍文创区',
+  a11: '正佳广场',
+  a12: '荔湾湖公园',
+};
+
+/** 推荐一句话亮点 */
+const HIGHLIGHTS = {
+  a1: '免费看展，毕业佳作集中呈现',
+  a2: '广府小吃 + 手作文创，适合周末闲逛',
+  a3: '新手友好，现场可借盘',
+  a4: '江边露天 live，氛围很好',
+  a5: '古埃及特展，口碑极高',
+  a6: '网红餐饮快闪，试吃名额有限',
+  a7: '欧式建筑 + 街头爵士',
+  a8: '5km 沿江夜跑，集合出发',
+  a9: '独立出版与小众杂志',
+  a10: '精酿 + 破冰桌游，需预约',
+  a11: '业余滑手交流，围观免费',
+  a12: '太极晨练，免费参与',
+};
+
+/** 虚拟评论 */
+const COMMENTS = {
+  a1: [
+    { user: '阿文', rating: 5, text: '毕业展质量很高，雕塑和交互装置特别惊喜。', time: '1天前', likes: 24, verified: true },
+    { user: '看展人', rating: 5, text: '免费！周末人有点多但值得来。', time: '3天前', likes: 18, verified: true },
+    { user: '设计狗', rating: 4, text: '本科生展区也很精彩，建议留 2 小时。', time: '5天前', likes: 9, verified: false },
+  ],
+  a2: [
+    { user: '吃货小美', rating: 5, text: '钵仔糕和手工饰品都很好逛，拍照也出片。', time: '2天前', likes: 31, verified: true },
+    { user: '周末党', rating: 4, text: '人有点多，建议上午来。', time: '4天前', likes: 12, verified: true },
+  ],
+  a3: [
+    { user: '飞盘新手', rating: 5, text: '教练很耐心，第一次玩就上手了。', time: '今天', likes: 8, verified: true },
+    { user: '运动达人', rating: 4, text: '场地不错，下午风大时盘会飘。', time: '2天前', likes: 5, verified: true },
+  ],
+  a4: [
+    { user: 'Live 爱好者', rating: 5, text: '江边吹风听歌，本地乐队水准在线。', time: '1天前', likes: 27, verified: true },
+    { user: '夜猫子', rating: 5, text: '建议提前占座，周末爆满。', time: '3天前', likes: 15, verified: false },
+    { user: '路人甲', rating: 4, text: '啤酒略贵，但氛围值得。', time: '6天前', likes: 6, verified: true },
+  ],
+  a5: [
+    { user: '博物馆控', rating: 5, text: '展陈很用心，数字互动部分小朋友也喜欢。', time: '2天前', likes: 56, verified: true },
+    { user: '历史迷', rating: 5, text: '广州必逛展览之一，强烈推荐。', time: '1周前', likes: 42, verified: true },
+    { user: '带娃党', rating: 5, text: '空调足，夏天避暑看展好去处。', time: '1周前', likes: 33, verified: true },
+  ],
+  a6: [
+    { user: '探店王', rating: 4, text: '试吃种类多，排队 20 分钟左右。', time: '3天前', likes: 11, verified: true },
+    { user: '小透明', rating: 4, text: '离地铁近，快闪只开两天。', time: '5天前', likes: 4, verified: false },
+  ],
+  a7: [
+    { user: '爵士粉', rating: 5, text: '沙面背景 + 爵士，浪漫值拉满。', time: '2天前', likes: 19, verified: true },
+    { user: '摄影er', rating: 4, text: '傍晚光线最好，记得带相机。', time: '4天前', likes: 8, verified: true },
+  ],
+  a8: [
+    { user: '跑者Leo', rating: 4, text: '路线沿江，夜景美，配速不限。', time: '3天前', likes: 14, verified: true },
+    { user: '新手跑', rating: 4, text: '有存包处，组织还算有序。', time: '1周前', likes: 7, verified: false },
+  ],
+  a9: [
+    { user: '书虫', rating: 4, text: '独立杂志种类多，价格小贵。', time: '2天前', likes: 6, verified: true },
+    { user: '文艺青年', rating: 4, text: '空间不大但选品有品位。', time: '5天前', likes: 3, verified: false },
+  ],
+  a10: [
+    { user: '社交牛', rating: 5, text: '桌游破冰设计不错，认识了新朋友。', time: '1天前', likes: 22, verified: true },
+    { user: '精酿控', rating: 4, text: '啤酒选择多，江边位置加分。', time: '4天前', likes: 11, verified: true },
+  ],
+  a11: [
+    { user: '滑板少年', rating: 4, text: '水平参差，但围观氛围好。', time: '3天前', likes: 9, verified: true },
+    { user: '路人', rating: 3, text: '音响太大，离远点看更舒服。', time: '6天前', likes: 2, verified: false },
+  ],
+  a12: [
+    { user: '早起鸟', rating: 5, text: '太极老师很专业，环境清静。', time: '今天', likes: 13, verified: true },
+    { user: '附近居民', rating: 5, text: '免费参与，适合带父母来。', time: '2天前', likes: 10, verified: true },
+  ],
+};
+
+function getComments(activityId) {
+  return COMMENTS[activityId] || [
+    { user: '匿名用户', rating: 4, text: '活动不错，值得一去。', time: '近期', likes: 1, verified: false },
+  ];
+}
+
+function getOrganizer(activityId) {
+  return ORGANIZERS[activityId] || '本地主办';
+}
+
+function getHighlight(activityId) {
+  return HIGHLIGHTS[activityId] || '附近热门活动';
+}
+
+/** 计算标记显示坐标（自动散开重叠点，保留最大偏移量） */
+function computeMarkerDisplayPositions(activities, minDist = 4.5, maxDrift = 5.5) {
+  const items = activities.map((a) => ({
+    id: a.id,
+    ox: a.x,
+    oy: a.y,
+    x: a.x,
+    y: a.y,
+  }));
+
+  for (let pass = 0; pass < 14; pass++) {
+    for (let i = 0; i < items.length; i++) {
+      for (let j = i + 1; j < items.length; j++) {
+        let dx = items[j].x - items[i].x;
+        let dy = items[j].y - items[i].y;
+        let dist = Math.hypot(dx, dy);
+        if (dist >= minDist) continue;
+        if (dist < 0.15) {
+          const angle = ((i * 5 + j * 11) % 360) * (Math.PI / 180);
+          dx = Math.cos(angle);
+          dy = Math.sin(angle);
+          dist = 1;
+        }
+        const push = (minDist - dist) / 2;
+        items[i].x -= (dx / dist) * push;
+        items[i].y -= (dy / dist) * push;
+        items[j].x += (dx / dist) * push;
+        items[j].y += (dy / dist) * push;
+      }
+    }
+    items.forEach((it) => {
+      let dx = it.x - it.ox;
+      let dy = it.y - it.oy;
+      const drift = Math.hypot(dx, dy);
+      if (drift > maxDrift) {
+        it.x = it.ox + (dx / drift) * maxDrift;
+        it.y = it.oy + (dy / drift) * maxDrift;
+      }
+    });
+  }
+
+  items.forEach((it) => {
+    it.x = Math.max(3, Math.min(97, it.x));
+    it.y = Math.max(3, Math.min(97, it.y));
+  });
+
+  return items.reduce((map, it) => {
+    map.set(it.id, { x: it.x, y: it.y });
+    return map;
+  }, new Map());
+}
+
+/** 全局标记布局（基于全部活动，筛选时位置稳定） */
+const MARKER_LAYOUT = computeMarkerDisplayPositions(ACTIVITIES);
 
 /** 是否高分活动 */
 function isHighScore(activity) {

@@ -25,11 +25,15 @@
     <div class="map-panel" id="mapPanel">
       <div class="map-wrap">
         <div class="map-hint">双指缩放 · 拖动地图 · 点击标记</div>
+        <div class="filter-bar" id="filterBar" hidden>
+          <span id="filterBarText"></span>
+          <button type="button" class="filter-bar-clear" id="btnClearFilter">清除筛选</button>
+        </div>
         <div class="map-count" id="mapCount"></div>
 
         <div class="map-canvas" id="mapCanvas">
           <div class="map-content">
-            <img class="map-img" src="assets/map-guangzhou.png" alt="广州地图" draggable="false" width="781" height="833">
+            <img class="map-img" src="assets/map-guangzhou.png" alt="广州地图" draggable="false" width="926" height="755">
             <div class="markers-layer" id="markersLayer"></div>
             <div class="user-loc">
               <div class="user-loc-pulse"></div>
@@ -46,12 +50,13 @@
       </div>
     </div>
 
-    <!-- 推荐占位 -->
-    <div class="panel-placeholder" id="recommendPanel">
-      <div class="ph-icon">✨</div>
-      <h2>为你推荐</h2>
-      <p>基于兴趣和位置的活动推荐列表<br>将在 V2 版本开放</p>
-      <span class="badge">开发中</span>
+    <!-- 推荐列表 -->
+    <div class="recommend-panel" id="recommendPanel">
+      <div class="recommend-header">
+        <h2>下午好，为你推荐附近的好活动</h2>
+        <p>基于你的位置与热门活动</p>
+      </div>
+      <div class="recommend-list" id="recommendList"></div>
     </div>
 
     <!-- 我的占位 -->
@@ -62,8 +67,82 @@
       <span class="badge">开发中</span>
     </div>
 
+    <!-- 筛选面板 -->
+    <div class="filter-backdrop" id="filterBackdrop"></div>
+    <div class="filter-panel" id="filterPanel">
+      <div class="filter-handle"></div>
+      <div class="filter-head">
+        <h3>筛选活动</h3>
+        <button type="button" class="filter-close" id="btnFilterClose">✕</button>
+      </div>
+      <p class="filter-section-label">类别（多选）</p>
+      <div class="filter-chips" id="filterChips"></div>
+      <div class="filter-actions">
+        <button type="button" class="btn btn-ghost" id="btnFilterReset">重置</button>
+        <button type="button" class="btn btn-primary" id="btnFilterApply">查看结果</button>
+      </div>
+    </div>
+
+    <!-- 活动详情页 -->
+    <div class="detail-page" id="detailPage" hidden>
+      <div class="detail-nav">
+        <button type="button" class="detail-back" id="btnDetailBack">←</button>
+        <span>活动详情</span>
+        <span class="detail-nav-spacer"></span>
+      </div>
+      <div class="detail-scroll" id="detailScroll">
+        <div class="detail-hero" id="detailHero"></div>
+        <div class="detail-body">
+          <div class="detail-title-row">
+            <h1 class="detail-title" id="detailTitle"></h1>
+            <span class="detail-status" id="detailStatus"></span>
+          </div>
+          <p class="detail-organizer" id="detailOrganizer"></p>
+          <div class="detail-rating-block">
+            <span class="detail-rating-big" id="detailRatingBig"></span>
+            <div class="detail-rating-side">
+              <div id="detailStars"></div>
+              <span class="detail-review-total" id="detailReviewTotal"></span>
+            </div>
+          </div>
+          <div class="detail-info-card">
+            <div class="detail-info-row">
+              <span class="detail-info-icon">🕐</span>
+              <span id="detailTime"></span>
+            </div>
+            <div class="detail-info-row">
+              <span class="detail-info-icon">📍</span>
+              <span id="detailAddress"></span>
+              <button type="button" class="detail-nav-btn" id="btnNav">导航</button>
+            </div>
+          </div>
+          <h3 class="detail-section-title">活动介绍</h3>
+          <p class="detail-desc" id="detailDesc"></p>
+          <div class="detail-section-head">
+            <h3 class="detail-section-title">用户评价</h3>
+            <span class="detail-section-sub" id="detailCommentCount"></span>
+          </div>
+          <div class="comment-list" id="commentList"></div>
+        </div>
+      </div>
+      <div class="detail-footer">
+        <button type="button" class="btn btn-ghost detail-share" id="btnShare">分享</button>
+        <button type="button" class="btn btn-primary detail-want" id="btnWant">想去</button>
+      </div>
+    </div>
+
     <!-- 遮罩 -->
     <div class="sheet-backdrop" id="sheetBackdrop"></div>
+
+    <!-- 重叠标记选择 -->
+    <div class="cluster-sheet" id="clusterSheet">
+      <div class="sheet-handle"></div>
+      <div class="cluster-head">
+        <h3 id="clusterTitle">此区域有多个活动</h3>
+        <button type="button" class="filter-close" id="btnClusterClose">✕</button>
+      </div>
+      <div class="cluster-list" id="clusterList"></div>
+    </div>
 
     <!-- 活动简要卡片 -->
     <div class="activity-sheet" id="activitySheet">
